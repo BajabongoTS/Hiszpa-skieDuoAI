@@ -1,0 +1,13 @@
+body {
+    margin: 0;
+}
+
+nav {
+    background-color: #20242c;
+    color: #fff;
+    display: flex;
+}
+
+.navigatrion {
+    display: flex;
+}
