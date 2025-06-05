@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, VStack, Heading, Text, Progress, Grid, HStack, Icon } from '@chakra-ui/react';
-import { FaCheck, FaTimes, FaSkull } from 'react-icons/fa';
+import { FaTimes, FaSkull } from 'react-icons/fa';
 
 export interface TestResult {
   lessonTitle: string;

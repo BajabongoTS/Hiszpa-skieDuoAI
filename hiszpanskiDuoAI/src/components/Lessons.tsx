@@ -1,4 +1,4 @@
-import { Box, Grid, VStack, Heading, Text, Progress, Button, useToast, ScaleFade, Input, HStack, CircularProgress, CircularProgressLabel, IconButton, Tooltip, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, useDisclosure } from '@chakra-ui/react';
+import { Box, Grid, VStack, Heading, Text, Progress, Button, useToast, ScaleFade, Input, HStack, Wrap, WrapItem, CircularProgress, CircularProgressLabel, IconButton, Tooltip, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, useDisclosure } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { FaClock, FaCheck, FaChartBar } from 'react-icons/fa';
