@@ -1,7 +1,11 @@
 import { ChakraProvider, Box } from '@chakra-ui/react';
 import { extendTheme } from '@chakra-ui/react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/navbar';
-import Lessons from './components/Lessons';
+import Home from './pages/Home';
+import LessonsPage from './pages/Lessons';
+import FlashcardsPage from './pages/Flashcards';
+import StatisticsPage from './pages/Statistics';
 
 const theme = extendTheme({
   config: {
@@ -31,10 +35,17 @@ const theme = extendTheme({
 function App() {
   return (
     <ChakraProvider theme={theme}>
-      <Box minH="100vh" bg="gray.50" _dark={{ bg: 'gray.800' }}>
-        <Navbar />
-        <Lessons />
-      </Box>
+      <Router>
+        <Box minH="100vh" bg="gray.50" _dark={{ bg: 'gray.800' }}>
+          <Navbar />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/lessons" element={<LessonsPage />} />
+            <Route path="/flashcards" element={<FlashcardsPage />} />
+            <Route path="/statistics" element={<StatisticsPage />} />
+          </Routes>
+        </Box>
+      </Router>
     </ChakraProvider>
   );
 }

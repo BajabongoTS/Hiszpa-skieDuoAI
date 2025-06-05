@@ -1,13 +1,17 @@
-import { Box, Grid, VStack, Heading, Text, Progress, Button, useToast, ScaleFade, Input, HStack, CircularProgress, CircularProgressLabel, IconButton, Tooltip, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, useDisclosure } from '@chakra-ui/react';
+import { Box, Grid, VStack, Heading, Text, Progress, Button, useToast, ScaleFade, Input, HStack, Tooltip, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, useDisclosure, IconButton, CircularProgress, CircularProgressLabel } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { FaClock, FaCheck, FaChartBar } from 'react-icons/fa';
+import { FaCheck, FaChartBar, FaClock, FaArrowLeft } from 'react-icons/fa';
 import TestStats from './TestStats';
 import type { TestResult } from './TestStats';
+import FlashcardMode from './FlashcardMode';
+import { useNavigate } from 'react-router-dom';
+import { parseVocabulary, createQuestionsFromVocab } from '../utils/vocabulary';
+import { bodyPartsVocab, foodVocab, excursionVocab, aWordsVocab } from '../data/vocabulary';
 
 const MotionBox = motion(Box);
 
-type QuestionType = 'multiple-choice' | 'text-input' | 'matching';
+type QuestionType = 'multiple-choice' | 'text-input' | 'matching' | 'flashcard';
 
 interface Question {
     type: QuestionType;
@@ -16,6 +20,7 @@ interface Question {
     correctAnswer: string;
     explanation?: string;
     matchingPairs?: Array<{ spanish: string; polish: string }>;
+    flashcardData?: { spanish: string; polish: string };
 }
 
 interface Lesson {
@@ -24,177 +29,111 @@ interface Lesson {
     description: string;
     progress: number;
     questions: Question[];
+    vocabulary: Array<{ spanish: string; polish: string }>;
 }
 
 const lessonsData: Lesson[] = [
     {
         id: 1,
-        title: "Podstawowe Powitania",
-        description: "Naucz się podstawowych hiszpańskich powitań i pożegnań",
+        title: "Części ciała",
+        description: "Naucz się nazw części ciała po hiszpańsku",
         progress: 0,
-        questions: [
-            {
-                type: 'multiple-choice',
-                question: "Jak powiedzieć 'Dzień dobry' po hiszpańsku?",
-                options: ["Buenos días", "Buenas noches", "Adiós", "Gracias"],
-                correctAnswer: "Buenos días",
-                explanation: "Buenos días używamy rano i po południu, do około 18:00."
-            },
-            {
-                type: 'text-input',
-                question: "Wpisz hiszpańskie słowo oznaczające 'Do widzenia' (Hint: hasta ...)",
-                correctAnswer: "luego",
-                explanation: "Hasta luego to nieformalne pożegnanie, dosłownie oznacza 'do później'."
-            },
-            {
-                type: 'matching',
-                question: "Dopasuj powitania do ich znaczeń",
-                matchingPairs: [
-                    { spanish: "Buenos días", polish: "Dzień dobry" },
-                    { spanish: "Buenas noches", polish: "Dobranoc" },
-                    { spanish: "Hola", polish: "Cześć" },
-                    { spanish: "Adiós", polish: "Do widzenia" }
-                ],
-                correctAnswer: "all-matched"
-            },
-            {
-                type: 'multiple-choice',
-                question: "Co oznacza 'Buenas tardes'?",
-                options: ["Dzień dobry", "Dobry wieczór", "Dobranoc", "Do widzenia"],
-                correctAnswer: "Dobry wieczór",
-                explanation: "Buenas tardes używamy popołudniu i wieczorem, przed zmrokiem."
-            },
-            {
-                type: 'text-input',
-                question: "Jak powiedzieć 'Jak się masz?' po hiszpańsku? (¿Cómo ...?)",
-                correctAnswer: "estás",
-                explanation: "¿Cómo estás? to nieformalne pytanie o samopoczucie."
-            },
-            {
-                type: 'matching',
-                question: "Dopasuj zwroty grzecznościowe",
-                matchingPairs: [
-                    { spanish: "Por favor", polish: "Proszę" },
-                    { spanish: "Gracias", polish: "Dziękuję" },
-                    { spanish: "De nada", polish: "Nie ma za co" },
-                    { spanish: "Perdón", polish: "Przepraszam" }
-                ],
-                correctAnswer: "all-matched"
-            },
-            {
-                type: 'multiple-choice',
-                question: "Które powitanie jest najbardziej formalne?",
-                options: ["¡Hola!", "Buenos días", "¿Qué tal?", "¡Hey!"],
-                correctAnswer: "Buenos días",
-                explanation: "Buenos días jest najbardziej formalnym powitaniem."
-            },
-            {
-                type: 'text-input',
-                question: "Dokończ zdanie: 'Hasta ...' (do zobaczenia)",
-                correctAnswer: "luego",
-                explanation: "Hasta luego to popularne pożegnanie."
-            }
-        ]
+        vocabulary: parseVocabulary(bodyPartsVocab),
+        questions: []
     },
     {
         id: 2,
-        title: "Liczby 1-10",
-        description: "Podstawowe liczby w języku hiszpańskim",
+        title: "Jedzenie",
+        description: "Poznaj słownictwo związane z jedzeniem",
         progress: 0,
-        questions: [
-            {
-                type: 'multiple-choice',
-                question: "Wybierz prawidłową kolejność liczb od 1 do 3",
-                options: [
-                    "uno, tres, dos",
-                    "uno, dos, tres",
-                    "dos, uno, tres",
-                    "tres, dos, uno"
-                ],
-                correctAnswer: "uno, dos, tres",
-                explanation: "Uno (1), dos (2), tres (3) to pierwsze trzy liczby w hiszpańskim."
-            },
-            {
-                type: 'text-input',
-                question: "Wpisz hiszpańską liczbę 'siedem'",
-                correctAnswer: "siete",
-                explanation: "Siete (7) to jedna z najważniejszych liczb w kulturze hiszpańskiej."
-            },
-            {
-                type: 'matching',
-                question: "Dopasuj liczby do ich wartości",
-                matchingPairs: [
-                    { spanish: "cinco", polish: "5" },
-                    { spanish: "ocho", polish: "8" },
-                    { spanish: "diez", polish: "10" },
-                    { spanish: "cuatro", polish: "4" }
-                ],
-                correctAnswer: "all-matched"
-            }
-        ]
+        vocabulary: parseVocabulary(foodVocab),
+        questions: []
     },
     {
         id: 3,
-        title: "Kolory",
-        description: "Poznaj podstawowe kolory w języku hiszpańskim",
+        title: "Wycieczka",
+        description: "Słownictwo przydatne podczas wycieczek",
         progress: 0,
-        questions: [
-            {
-                type: 'multiple-choice',
-                question: "Który kolor to 'rojo'?",
-                options: ["Niebieski", "Czerwony", "Zielony", "Żółty"],
-                correctAnswer: "Czerwony",
-                explanation: "Rojo to podstawowy kolor w hiszpańskim, oznaczający czerwony."
-            },
-            {
-                type: 'text-input',
-                question: "Wpisz hiszpańskie słowo oznaczające 'niebieski'",
-                correctAnswer: "azul",
-                explanation: "Azul to jeden z najważniejszych kolorów w sztuce hiszpańskiej."
-            },
-            {
-                type: 'matching',
-                question: "Dopasuj kolory do ich znaczeń",
-                matchingPairs: [
-                    { spanish: "verde", polish: "zielony" },
-                    { spanish: "amarillo", polish: "żółty" },
-                    { spanish: "negro", polish: "czarny" },
-                    { spanish: "blanco", polish: "biały" }
-                ],
-                correctAnswer: "all-matched"
-            }
-        ]
+        vocabulary: parseVocabulary(excursionVocab),
+        questions: []
+    },
+    {
+        id: 4,
+        title: "Słowa na 'a'",
+        description: "Naucz się słów rodzaju żeńskiego zaczynających się na 'a'",
+        progress: 0,
+        vocabulary: parseVocabulary(aWordsVocab),
+        questions: []
     }
 ];
 
+// Generate questions for each lesson
+lessonsData.forEach(lesson => {
+    lesson.questions = createQuestionsFromVocab(lesson.vocabulary);
+});
+
+// Add these helper functions at the top of the file, before the Lessons component
+const saveToLocalStorage = (key: string, data: any) => {
+    try {
+        localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+        console.error('Error saving to localStorage:', error);
+    }
+};
+
+const loadFromLocalStorage = (key: string, defaultValue: any) => {
+    try {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : defaultValue;
+    } catch (error) {
+        console.error('Error loading from localStorage:', error);
+        return defaultValue;
+    }
+};
+
 const Lessons = () => {
-    const [lessons, setLessons] = useState<Lesson[]>(lessonsData);
-    const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [lessons, setLessons] = useState<Lesson[]>(() => 
+        loadFromLocalStorage('lessons', lessonsData)
+    );
+    const [currentLesson, setCurrentLesson] = useState<Lesson | null>(() =>
+        loadFromLocalStorage('currentLesson', null)
+    );
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(() =>
+        loadFromLocalStorage('currentQuestionIndex', 0)
+    );
     const [showExplanation, setShowExplanation] = useState(false);
     const [textInput, setTextInput] = useState('');
     const [matchedPairs, setMatchedPairs] = useState<Record<string, string>>({});
     const [selectedSpanish, setSelectedSpanish] = useState<string | null>(null);
+    const [incorrectPairs, setIncorrectPairs] = useState<{ spanish: string; polish: string } | null>(null);
+    const [isAnsweredCorrectly, setIsAnsweredCorrectly] = useState(false);
     const [timeLeft, setTimeLeft] = useState(30);
     const [timerActive, setTimerActive] = useState(true);
     const [canExtendTime, setCanExtendTime] = useState(true);
-    const [incorrectPairs, setIncorrectPairs] = useState<{ spanish: string; polish: string } | null>(null);
-    const [isAnsweredCorrectly, setIsAnsweredCorrectly] = useState(false);
+    const [questionsToRepeat, setQuestionsToRepeat] = useState<Set<number>>(() => 
+        new Set(loadFromLocalStorage('questionsToRepeat', []))
+    );
+    const [isInRepeatMode, setIsInRepeatMode] = useState(() =>
+        loadFromLocalStorage('isInRepeatMode', false)
+    );
     const toast = useToast();
-    const [incorrectAttempts, setIncorrectAttempts] = useState<Record<string, number>>({});
+    const [incorrectAttempts, setIncorrectAttempts] = useState<Record<string, number>>(() =>
+        loadFromLocalStorage('incorrectAttempts', {})
+    );
     const [testStartTime, setTestStartTime] = useState<Date | null>(null);
     const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
     const { isOpen, onOpen, onClose } = useDisclosure();
+    const navigate = useNavigate();
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
-        if (timerActive && timeLeft > 0 && currentLesson && !showExplanation) {
+        if (timerActive && timeLeft > 0 && currentLesson && !showExplanation && !isAnsweredCorrectly) {
             timer = setInterval(() => {
                 setTimeLeft(prev => prev - 1);
             }, 1000);
         }
         return () => clearInterval(timer);
-    }, [timerActive, timeLeft, currentLesson, showExplanation]);
+    }, [timerActive, timeLeft, currentLesson, showExplanation, isAnsweredCorrectly]);
 
     useEffect(() => {
         if (timeLeft === 0 && timerActive) {
@@ -202,21 +141,40 @@ const Lessons = () => {
         }
     }, [timeLeft]);
 
-    const startLesson = (lesson: Lesson) => {
-        setCurrentLesson(lesson);
-        setCurrentQuestionIndex(0);
-        setShowExplanation(false);
-        setTextInput('');
-        setMatchedPairs({});
-        setSelectedSpanish(null);
-        setTimeLeft(30);
-        setTimerActive(true);
-        setCanExtendTime(true);
-        setIncorrectPairs(null);
-        setIsAnsweredCorrectly(false);
-        setIncorrectAttempts({});
-        setTestStartTime(new Date());
-    };
+    useEffect(() => {
+        saveToLocalStorage('lessons', lessons);
+    }, [lessons]);
+
+    useEffect(() => {
+        saveToLocalStorage('currentLesson', currentLesson);
+    }, [currentLesson]);
+
+    useEffect(() => {
+        saveToLocalStorage('currentQuestionIndex', currentQuestionIndex);
+    }, [currentQuestionIndex]);
+
+    useEffect(() => {
+        saveToLocalStorage('questionsToRepeat', Array.from(questionsToRepeat));
+    }, [questionsToRepeat]);
+
+    useEffect(() => {
+        saveToLocalStorage('isInRepeatMode', isInRepeatMode);
+    }, [isInRepeatMode]);
+
+    useEffect(() => {
+        saveToLocalStorage('incorrectAttempts', incorrectAttempts);
+    }, [incorrectAttempts]);
+
+    useEffect(() => {
+        return () => {
+            saveToLocalStorage('lessons', lessons);
+            saveToLocalStorage('currentLesson', currentLesson);
+            saveToLocalStorage('currentQuestionIndex', currentQuestionIndex);
+            saveToLocalStorage('questionsToRepeat', Array.from(questionsToRepeat));
+            saveToLocalStorage('isInRepeatMode', isInRepeatMode);
+            saveToLocalStorage('incorrectAttempts', incorrectAttempts);
+        };
+    }, [lessons, currentLesson, currentQuestionIndex, questionsToRepeat, isInRepeatMode, incorrectAttempts]);
 
     const handleExtendTime = () => {
         if (canExtendTime) {
@@ -232,46 +190,79 @@ const Lessons = () => {
         }
     };
 
+    const startLesson = (lesson: Lesson) => {
+        if (currentLesson?.id === lesson.id && currentQuestionIndex > 0) {
+            const shouldResume = window.confirm(
+                'Znaleziono zapisany postęp w tej lekcji. Czy chcesz kontynuować od ostatniego pytania?'
+            );
+            if (!shouldResume) {
+                setCurrentQuestionIndex(0);
+                setShowExplanation(false);
+                setTextInput('');
+                setMatchedPairs({});
+                setSelectedSpanish(null);
+                setIncorrectPairs(null);
+                setIsAnsweredCorrectly(false);
+                setTimeLeft(30);
+                setTimerActive(true);
+                setCanExtendTime(true);
+                setQuestionsToRepeat(new Set());
+                setIsInRepeatMode(false);
+                setIncorrectAttempts({});
+                setTestStartTime(new Date());
+            }
+        } else {
+            setCurrentQuestionIndex(0);
+            setShowExplanation(false);
+            setTextInput('');
+            setMatchedPairs({});
+            setSelectedSpanish(null);
+            setIncorrectPairs(null);
+            setIsAnsweredCorrectly(false);
+            setTimeLeft(30);
+            setTimerActive(true);
+            setCanExtendTime(true);
+            setQuestionsToRepeat(new Set());
+            setIsInRepeatMode(false);
+            setIncorrectAttempts({});
+            setTestStartTime(new Date());
+        }
+        setCurrentLesson(lesson);
+    };
+
+    const addToQuestionsToRepeat = (questionIndex: number) => {
+        setQuestionsToRepeat((prev: Set<number>) => new Set([...Array.from(prev), questionIndex]));
+    };
+
+    const removeFromQuestionsToRepeat = (questionIndex: number) => {
+        setQuestionsToRepeat((prev: Set<number>) => {
+            const newSet = new Set(Array.from(prev));
+            newSet.delete(questionIndex);
+            return newSet;
+        });
+    };
+
     const handleDontKnow = () => {
         if (!currentLesson) return;
         const currentQuestion = currentLesson.questions[currentQuestionIndex];
         setTimerActive(false);
         
+        addToQuestionsToRepeat(currentQuestionIndex);
+
         toast({
             title: "Nie szkodzi!",
             description: `Prawidłowa odpowiedź to: ${
                 currentQuestion.type === 'matching' 
                     ? 'Sprawdź poniższe pary'
                     : currentQuestion.correctAnswer
-            }`,
+            }. To pytanie pojawi się ponownie na końcu testu.`,
             status: "info",
             duration: 3000,
             isClosable: true,
         });
 
         setShowExplanation(true);
-        setTimeout(() => {
-            setShowExplanation(false);
-            setTextInput('');
-            setMatchedPairs({});
-            setSelectedSpanish(null);
-            
-            if (currentQuestionIndex + 1 < currentLesson.questions.length) {
-                setCurrentQuestionIndex(prev => prev + 1);
-                setTimeLeft(30);
-                setTimerActive(true);
-                setCanExtendTime(true);
-            } else {
-                const updatedLessons = lessons.map(l => {
-                    if (l.id === currentLesson.id) {
-                        return { ...l, progress: 100 };
-                    }
-                    return l;
-                });
-                setLessons(updatedLessons);
-                setCurrentLesson(null);
-            }
-        }, 3000);
+        setIsAnsweredCorrectly(true);
     };
 
     const handleIncorrectAnswer = (question: string) => {
@@ -295,7 +286,8 @@ const Lessons = () => {
         };
 
         setLastTestResult(result);
-        onOpen(); // Show statistics modal
+        clearSavedProgress();
+        onOpen();
     };
 
     const handleAnswer = (answer: string) => {
@@ -333,6 +325,10 @@ const Lessons = () => {
             return;
         }
 
+        if (questionsToRepeat.has(currentQuestionIndex)) {
+            removeFromQuestionsToRepeat(currentQuestionIndex);
+        }
+
         setIsAnsweredCorrectly(true);
         toast({
             title: "Poprawna odpowiedź!",
@@ -343,30 +339,81 @@ const Lessons = () => {
         });
 
         setShowExplanation(true);
-        setTimeout(() => {
-            setShowExplanation(false);
-            setTextInput('');
-            setMatchedPairs({});
-            setSelectedSpanish(null);
-            setIsAnsweredCorrectly(false);
+    };
+
+    const handleContinue = () => {
+        setShowExplanation(false);
+        setTextInput('');
+        setMatchedPairs({});
+        setSelectedSpanish(null);
+        setIsAnsweredCorrectly(false);
+        setTimerActive(true);
+        setTimeLeft(30);
+        setCanExtendTime(true);
+
+        const totalQuestions = currentLesson!.questions.length;
+        
+        // If we're in repeat mode
+        if (isInRepeatMode) {
+            // Find next question to repeat
+            const repeatArray = Array.from(questionsToRepeat);
+            const currentRepeatIndex = repeatArray.indexOf(currentQuestionIndex);
             
-            if (currentQuestionIndex + 1 < currentLesson.questions.length) {
-                setCurrentQuestionIndex(prev => prev + 1);
-                setTimeLeft(30);
-                setTimerActive(true);
-                setCanExtendTime(true);
+            if (currentRepeatIndex < repeatArray.length - 1) {
+                // Move to next repeat question
+                setCurrentQuestionIndex(repeatArray[currentRepeatIndex + 1]);
+            } else if (questionsToRepeat.size > 0) {
+                // If we've completed one round of repeats but still have questions, start over
+                setCurrentQuestionIndex(repeatArray[0]);
+                toast({
+                    title: "Kolejna runda powtórek!",
+                    description: `Pozostało ${questionsToRepeat.size} pytań do opanowania.`,
+                    status: "info",
+                    duration: 2000,
+                    isClosable: true,
+                });
             } else {
+                // All questions answered correctly, finish lesson
                 const updatedLessons = lessons.map(l => {
-                    if (l.id === currentLesson.id) {
+                    if (l.id === currentLesson!.id) {
                         return { ...l, progress: 100 };
                     }
                     return l;
                 });
                 setLessons(updatedLessons);
-                finishLesson(currentLesson);
+                finishLesson(currentLesson!);
                 setCurrentLesson(null);
             }
-        }, 2000);
+            return;
+        }
+
+        // Normal mode progression
+        if (currentQuestionIndex + 1 < totalQuestions) {
+            // Move to next question in normal sequence
+            setCurrentQuestionIndex((prev: number) => prev + 1);
+        } else if (questionsToRepeat.size > 0) {
+            // Switch to repeat mode
+            setIsInRepeatMode(true);
+            setCurrentQuestionIndex(Array.from(questionsToRepeat)[0]);
+            toast({
+                title: "Czas na powtórkę!",
+                description: `Powtórzymy ${questionsToRepeat.size} pytań, które sprawiły trudność.`,
+                status: "info",
+                duration: 3000,
+                isClosable: true,
+            });
+        } else {
+            // No questions to repeat, finish lesson
+            const updatedLessons = lessons.map(l => {
+                if (l.id === currentLesson!.id) {
+                    return { ...l, progress: 100 };
+                }
+                return l;
+            });
+            setLessons(updatedLessons);
+            finishLesson(currentLesson!);
+            setCurrentLesson(null);
+        }
     };
 
     const checkAllPairsMatched = (currentPairs: Record<string, string>, matchingPairs: Array<{ spanish: string; polish: string }>) => {
@@ -399,7 +446,6 @@ const Lessons = () => {
 
                 // Check if all pairs are matched correctly
                 if (currentQuestion?.matchingPairs && checkAllPairsMatched(newPairs, currentQuestion.matchingPairs)) {
-                    setTimerActive(false);
                     setIsAnsweredCorrectly(true);
                     toast({
                         title: "Świetnie!",
@@ -410,36 +456,6 @@ const Lessons = () => {
                     });
                     
                     setShowExplanation(true);
-                    setTimeout(() => {
-                        setShowExplanation(false);
-                        setTextInput('');
-                        setMatchedPairs({});
-                        setSelectedSpanish(null);
-                        setIsAnsweredCorrectly(false);
-                        
-                        if (currentQuestionIndex + 1 < currentLesson.questions.length) {
-                            setCurrentQuestionIndex(prev => prev + 1);
-                            setTimeLeft(30);
-                            setTimerActive(true);
-                            setCanExtendTime(true);
-                        } else {
-                            const updatedLessons = lessons.map(l => {
-                                if (l.id === currentLesson.id) {
-                                    return { ...l, progress: 100 };
-                                }
-                                return l;
-                            });
-                            setLessons(updatedLessons);
-                            setCurrentLesson(null);
-                            toast({
-                                title: "Gratulacje!",
-                                description: "Ukończyłeś lekcję! Możesz być z siebie dumny!",
-                                status: "success",
-                                duration: 3000,
-                                isClosable: true,
-                            });
-                        }
-                    }, 2000);
                 }
             } else {
                 // Show error feedback for both words
@@ -484,7 +500,6 @@ const Lessons = () => {
                         </Button>
                     </VStack>
                 );
-
             case 'text-input':
                 return (
                     <VStack spacing={4} w="100%">
@@ -513,7 +528,6 @@ const Lessons = () => {
                         </Button>
                     </VStack>
                 );
-
             case 'matching':
                 return (
                     <VStack spacing={6} w="100%">
@@ -601,20 +615,69 @@ const Lessons = () => {
                         </Button>
                     </VStack>
                 );
+            default:
+                return null;
         }
+    };
+
+    // Add clearSavedProgress function
+    const clearSavedProgress = () => {
+        localStorage.removeItem('currentLesson');
+        localStorage.removeItem('currentQuestionIndex');
+        localStorage.removeItem('questionsToRepeat');
+        localStorage.removeItem('isInRepeatMode');
+        localStorage.removeItem('incorrectAttempts');
     };
 
     if (currentLesson) {
         const currentQuestion = currentLesson.questions[currentQuestionIndex];
+        const isLastQuestion = !isInRepeatMode && 
+            currentQuestionIndex === currentLesson.questions.length - 1 && 
+            questionsToRepeat.size === 0;
+
         return (
             <ScaleFade initialScale={0.9} in={true}>
                 <VStack spacing={6} p={8} align="stretch" maxW="800px" mx="auto">
-                    <HStack justify="space-between" align="center">
-                        <Heading size="lg">{currentLesson.title}</Heading>
-                        <Text>
-                            Pytanie {currentQuestionIndex + 1} z {currentLesson.questions.length}
-                        </Text>
+                    <HStack justify="space-between" align="center" position="relative">
+                        <IconButton
+                            aria-label="Return to tests"
+                            icon={<FaArrowLeft />}
+                            onClick={() => {
+                                const shouldExit = window.confirm('Czy na pewno chcesz wrócić do listy testów? Twój postęp zostanie zapisany.');
+                                if (shouldExit) {
+                                    setCurrentLesson(null);
+                                }
+                            }}
+                            position="absolute"
+                            left={0}
+                            colorScheme="teal"
+                            variant="ghost"
+                            size="md"
+                        />
+                        <Heading size="lg" mx="auto">
+                            {currentLesson.title}
+                            {isInRepeatMode && (
+                                <Text as="span" fontSize="md" color="orange.500" ml={2}>
+                                    (Tryb powtórki)
+                                </Text>
+                            )}
+                        </Heading>
                     </HStack>
+
+                    <VStack align="end" spacing={0}>
+                        <Text>
+                            {isInRepeatMode 
+                                ? `Powtórka: ${Array.from(questionsToRepeat).indexOf(currentQuestionIndex) + 1} z ${questionsToRepeat.size}`
+                                : `Pytanie ${currentQuestionIndex + 1} z ${currentLesson.questions.length}`
+                            }
+                        </Text>
+                        {!isInRepeatMode && questionsToRepeat.size > 0 && (
+                            <Text fontSize="sm" color="orange.500">
+                                Pytania do powtórki: {questionsToRepeat.size}
+                            </Text>
+                        )}
+                    </VStack>
+
                     <Progress
                         value={(currentQuestionIndex / currentLesson.questions.length) * 100}
                         size="sm"
@@ -630,7 +693,7 @@ const Lessons = () => {
                                         aria-label="Add 15 seconds"
                                         icon={<FaClock />}
                                         onClick={handleExtendTime}
-                                        isDisabled={!canExtendTime}
+                                        isDisabled={!canExtendTime || isAnsweredCorrectly}
                                         colorScheme={canExtendTime ? "teal" : "gray"}
                                         size="sm"
                                     />
@@ -656,6 +719,17 @@ const Lessons = () => {
                                     <Text>{currentQuestion.explanation}</Text>
                                 </Box>
                             )}
+                            {isAnsweredCorrectly && (
+                                <Button
+                                    onClick={handleContinue}
+                                    colorScheme="teal"
+                                    size="lg"
+                                    mt={4}
+                                    w="100%"
+                                >
+                                    {isLastQuestion ? 'Zakończ test' : 'Następne pytanie'}
+                                </Button>
+                            )}
                         </VStack>
                     </Box>
                 </VStack>
@@ -664,7 +738,7 @@ const Lessons = () => {
     }
 
     return (
-        <VStack spacing={8} p={8} align="stretch" maxW="1200px" mx="auto">
+        <VStack spacing={8} align="stretch" maxW="1200px" mx="auto" p={8}>
             <HStack justify="space-between">
                 <Heading>Dostępne Lekcje</Heading>
                 {lastTestResult && (
