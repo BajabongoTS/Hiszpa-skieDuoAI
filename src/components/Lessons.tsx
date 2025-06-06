@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import { FaCheck, FaChartBar, FaClock, FaArrowLeft } from 'react-icons/fa';
 import TestStats from './TestStats';
 import type { TestResult } from './TestStats';
-import FlashcardMode from './FlashcardMode';
-import { useNavigate } from 'react-router-dom';
 import { parseVocabulary, createQuestionsFromVocab } from '../utils/vocabulary';
 import { bodyPartsVocab, foodVocab, excursionVocab, aWordsVocab } from '../data/vocabulary';
 
@@ -123,7 +121,6 @@ const Lessons = () => {
     const [testStartTime, setTestStartTime] = useState<Date | null>(null);
     const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
     const { isOpen, onOpen, onClose } = useDisclosure();
-    const navigate = useNavigate();
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
