@@ -37,8 +37,8 @@ function App() {
   return (
     <ChakraProvider theme={theme}>
       <Router basename="/">
-        <Box minH="100vh" bg="gray.50" _dark={{ bg: 'gray.800' }}>
-          <Navbar />
+      <Box minH="100vh" bg="gray.50" _dark={{ bg: 'gray.800' }}>
+        <Navbar />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/lessons" element={<LessonsPage />} />
@@ -46,7 +46,7 @@ function App() {
             <Route path="/statistics" element={<StatisticsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </Box>
+      </Box>
       </Router>
     </ChakraProvider>
   );

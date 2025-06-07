@@ -91,14 +91,3 @@ body {
 .fade-in {
   animation: fadeIn 0.3s ease-in-out;
 }
-
-@keyframes drawLine {
-  from {
-    stroke-dasharray: 200;
-    stroke-dashoffset: 200;
-  }
-  to {
-    stroke-dasharray: 200;
-    stroke-dashoffset: 0;
-  }
-}

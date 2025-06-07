@@ -22,7 +22,8 @@ import {
     ModalBody,
     ModalCloseButton,
     Tooltip,
-    Icon
+    Icon,
+    Center
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { FaArrowLeft, FaClock, FaChartBar, FaCheck, FaRedo } from 'react-icons/fa';
@@ -30,6 +31,7 @@ import { setCookie, getCookie } from '../utils/cookies';
 import type { Question, Lesson, TestResult } from '../types';
 import { lessonsData } from '../data/lessonsData';
 import TestStats from '../components/TestStats';
+import React from 'react';
 
 const MotionBox = motion(Box);
 
@@ -44,6 +46,16 @@ const normalizeSpanishText = (text: string): string => {
         .replace(/[\u0300-\u036f]/g, '')
         // Remove extra whitespace
         .trim();
+};
+
+// Add a shuffle function to randomize array order
+const shuffleArray = <T>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
 };
 
 const Lessons = () => {
@@ -66,12 +78,11 @@ const Lessons = () => {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [showExplanation, setShowExplanation] = useState(false);
     const [textInput, setTextInput] = useState('');
-    const [selectedSpanish, setSelectedSpanish] = useState<string | null>(null);
     const [matchedPairs, setMatchedPairs] = useState<Record<string, string>>({});
-    const [incorrectPairs, setIncorrectPairs] = useState<{ spanish: string; polish: string } | null>(null);
+    const [selectedSpanish, setSelectedSpanish] = useState<string | null>(null);
     const [isAnsweredCorrectly, setIsAnsweredCorrectly] = useState(false);
     const [timeLeft, setTimeLeft] = useState(30);
-    const [timerActive, setTimerActive] = useState(false);
+    const [timerActive, setTimerActive] = useState(true);
     const [canExtendTime, setCanExtendTime] = useState(true);
     const [questionsToRepeat, setQuestionsToRepeat] = useState<Set<number>>(new Set());
     const [isInRepeatMode, setIsInRepeatMode] = useState(false);
@@ -83,6 +94,10 @@ const Lessons = () => {
         return savedResult ? { ...savedResult, completedAt: new Date(savedResult.completedAt) } : null;
     });
     const { isOpen, onOpen, onClose } = useDisclosure();
+
+    // Add state for shuffled pairs
+    const [shuffledSpanish, setShuffledSpanish] = useState<string[]>([]);
+    const [shuffledPolish, setShuffledPolish] = useState<string[]>([]);
 
     // Save lessons state to cookies whenever it changes
     useEffect(() => {
@@ -132,7 +147,6 @@ const Lessons = () => {
         setTextInput('');
         setMatchedPairs({});
         setSelectedSpanish(null);
-        setIncorrectPairs(null);
         setIsAnsweredCorrectly(false);
         setTimeLeft(30);
         setTimerActive(true);
@@ -141,11 +155,16 @@ const Lessons = () => {
         setIsInRepeatMode(false);
         setIncorrectAttempts({});
         setTestStartTime(new Date());
+        setShuffledSpanish([]);
+        setShuffledPolish([]);
     };
 
-    // Update the useEffect to remove the unused pairs variable
+    // Add useEffect to shuffle pairs when question changes
     useEffect(() => {
         if (currentLesson && currentLesson.questions[currentQuestionIndex] && currentLesson.questions[currentQuestionIndex].type === 'matching' && currentLesson.questions[currentQuestionIndex].matchingPairs) {
+            const pairs = currentLesson.questions[currentQuestionIndex].matchingPairs;
+            setShuffledSpanish(shuffleArray(pairs.map(p => p.spanish)));
+            setShuffledPolish(shuffleArray(pairs.map(p => p.polish)));
             setMatchedPairs({});
             setSelectedSpanish(null);
         }
@@ -239,41 +258,6 @@ const Lessons = () => {
         setLastTestResult(result);
         setCurrentLesson(null); // Reset current lesson
         onOpen();
-    };
-
-    const handleMatchingClick = (value: string, isSpanish: boolean) => {
-        if (!currentLesson || isAnsweredCorrectly) return;
-        
-        if (isSpanish) {
-            setSelectedSpanish(value);
-            setIncorrectPairs(null);
-        } else if (selectedSpanish) {
-            const currentQuestion = currentLesson.questions[currentQuestionIndex];
-            const isCorrectMatch = currentQuestion.matchingPairs?.some(
-                pair => pair.spanish === selectedSpanish && pair.polish === value
-            );
-
-            if (isCorrectMatch) {
-                const newPairs = { ...matchedPairs, [selectedSpanish]: value };
-                setMatchedPairs(newPairs);
-                setSelectedSpanish(null);
-                setIncorrectPairs(null);
-
-                // Check if all pairs are matched correctly
-                if (currentQuestion.matchingPairs && Object.keys(newPairs).length === currentQuestion.matchingPairs.length) {
-                    setIsAnsweredCorrectly(true);
-                    setShowExplanation(true);
-                }
-            } else {
-                // Show error feedback for both words
-                setIncorrectPairs({ spanish: selectedSpanish, polish: value });
-                handleIncorrectAnswer(currentQuestion.question);
-                setTimeout(() => {
-                    setIncorrectPairs(null);
-                    setSelectedSpanish(null);
-                }, 1000);
-            }
-        }
     };
 
     const handleAnswer = (answer: string) => {
@@ -420,116 +404,88 @@ const Lessons = () => {
     const renderMatchingQuestion = (question: Question) => {
         if (!question.matchingPairs) return null;
 
+        // Shuffle pairs for display
+        const shuffledPairs = React.useMemo(() => 
+            shuffleArray(question.matchingPairs), [question.matchingPairs]);
+        
         return (
             <VStack spacing={6} w="100%">
-                <Box position="relative" w="100%">
-                    <Grid templateColumns="1fr auto 1fr" gap={4} w="100%" alignItems="start">
-                        <VStack spacing={4} align="stretch">
-                            <Heading size="sm" textAlign="center">Hiszpański</Heading>
-                            {question.matchingPairs!.map(pair => (
-                                <Button
-                                    key={pair.spanish}
-                                    size="md"
-                                    variant={selectedSpanish === pair.spanish ? 'solid' : 'outline'}
-                                    colorScheme={incorrectPairs?.spanish === pair.spanish ? 'red' : 'teal'}
-                                    onClick={() => handleMatchingClick(pair.spanish, true)}
-                                    isDisabled={matchedPairs[pair.spanish] !== undefined || isAnsweredCorrectly}
-                                    w="100%"
-                                    justifyContent="flex-start"
-                                    px={4}
-                                    transition="all 0.2s"
-                                    position="relative"
-                                    zIndex="1"
-                                >
-                                    {pair.spanish}
-                                </Button>
-                            ))}
-                        </VStack>
-
-                        <Box position="relative" w="40px">
-                            <svg
-                                style={{
-                                    position: 'absolute',
-                                    top: '0',
-                                    left: '0',
-                                    width: '100%',
-                                    height: '100%',
-                                    pointerEvents: 'none'
+                <Grid templateColumns="1fr auto 1fr" gap={4} w="100%" alignItems="start">
+                    <VStack spacing={4} align="stretch">
+                        <Heading size="sm" textAlign="center">Hiszpański</Heading>
+                        {shuffledPairs.map(pair => (
+                            <Button
+                                key={pair.spanish}
+                                size="md"
+                                variant={selectedSpanish === pair.spanish ? 'solid' : 'outline'}
+                                colorScheme={incorrectAttempts[pair.spanish] ? 'red' : 'teal'}
+                                onClick={() => {
+                                    if (matchedPairs[pair.spanish]) return;
+                                    setSelectedSpanish(pair.spanish);
                                 }}
+                                isDisabled={matchedPairs[pair.spanish] !== undefined || isAnsweredCorrectly}
+                                w="100%"
+                                justifyContent="flex-start"
+                                px={4}
+                                transition="all 0.2s"
                             >
-                                {Object.entries(matchedPairs).map(([spanish, polish]) => {
-                                    const spanishIndex = question.matchingPairs!.findIndex(p => p.spanish === spanish);
-                                    const polishIndex = question.matchingPairs!.findIndex(p => p.polish === polish);
-                                    if (spanishIndex === -1 || polishIndex === -1) return null;
+                                {pair.spanish}
+                            </Button>
+                        ))}
+                    </VStack>
 
-                                    const y1 = spanishIndex * 48 + 48; // 48px is button height + spacing
-                                    const y2 = polishIndex * 48 + 48;
+                    <Center>
+                        <Box h="full" w="2px" bg="gray.200" _dark={{ bg: 'gray.600' }} />
+                    </Center>
 
-                                    return (
-                                        <path
-                                            key={spanish}
-                                            d={`M 0,${y1} C 20,${y1} 20,${y2} 40,${y2}`}
-                                            stroke="var(--chakra-colors-teal-500)"
-                                            strokeWidth="2"
-                                            fill="none"
-                                            style={{
-                                                animation: 'drawLine 0.5s ease-in-out forwards'
-                                            }}
-                                        />
+                    <VStack spacing={4} align="stretch">
+                        <Heading size="sm" textAlign="center">Polski</Heading>
+                        {/* Shuffle Polish words independently */}
+                        {shuffleArray([...shuffledPairs]).map(pair => (
+                            <Button
+                                key={pair.polish}
+                                size="md"
+                                variant="outline"
+                                colorScheme={incorrectAttempts[pair.polish] ? 'red' : 'teal'}
+                                onClick={() => {
+                                    if (!selectedSpanish || Object.values(matchedPairs).includes(pair.polish)) return;
+                                    
+                                    const correctPair = question.matchingPairs?.find(
+                                        p => p.spanish === selectedSpanish && p.polish === pair.polish
                                     );
-                                })}
-                            </svg>
-                        </Box>
 
-                        <VStack spacing={4} align="stretch">
-                            <Heading size="sm" textAlign="center">Polski</Heading>
-                            {question.matchingPairs!.map(pair => (
-                                <Button
-                                    key={pair.polish}
-                                    size="md"
-                                    variant="outline"
-                                    colorScheme={incorrectPairs?.polish === pair.polish ? 'red' : 'teal'}
-                                    onClick={() => handleMatchingClick(pair.polish, false)}
-                                    isDisabled={Object.values(matchedPairs).includes(pair.polish) || isAnsweredCorrectly}
-                                    w="100%"
-                                    justifyContent="flex-start"
-                                    px={4}
-                                    transition="all 0.2s"
-                                    position="relative"
-                                    zIndex="1"
-                                >
-                                    {pair.polish}
-                                </Button>
-                            ))}
-                        </VStack>
-                    </Grid>
-                </Box>
+                                    if (correctPair) {
+                                        setMatchedPairs(prev => ({ ...prev, [selectedSpanish]: pair.polish }));
+                                        setSelectedSpanish(null);
 
-                {Object.keys(matchedPairs).length > 0 && (
-                    <Box w="100%" p={4} borderWidth={1} borderRadius="md">
-                        <Heading size="sm" mb={2}>Dopasowane pary:</Heading>
-                        <VStack align="stretch" spacing={2}>
-                            {Object.entries(matchedPairs).map(([spanish, polish]) => (
-                                <HStack key={spanish} justify="center" p={2} bg="teal.50" borderRadius="md" _dark={{ bg: 'teal.900' }}>
-                                    <Text fontWeight="medium">{spanish}</Text>
-                                    <Text>→</Text>
-                                    <Text fontWeight="medium">{polish}</Text>
-                                </HStack>
-                            ))}
-                        </VStack>
-                    </Box>
-                )}
-
-                <Button
-                    onClick={handleDontKnow}
-                    variant="ghost"
-                    colorScheme="gray"
-                    size="md"
-                    mt={2}
-                    isDisabled={isAnsweredCorrectly}
-                >
-                    Nie wiem
-                </Button>
+                                        // Check if all pairs are matched
+                                        if (Object.keys(matchedPairs).length + 1 === question.matchingPairs?.length) {
+                                            setIsAnsweredCorrectly(true);
+                                            setShowExplanation(true);
+                                        }
+                                    } else {
+                                        handleIncorrectAnswer(question.question);
+                                        setSelectedSpanish(null);
+                                        toast({
+                                            title: "Niepoprawne dopasowanie",
+                                            description: "Spróbuj jeszcze raz!",
+                                            status: "error",
+                                            duration: 2000,
+                                            isClosable: true
+                                        });
+                                    }
+                                }}
+                                isDisabled={Object.values(matchedPairs).includes(pair.polish) || isAnsweredCorrectly}
+                                w="100%"
+                                justifyContent="flex-start"
+                                px={4}
+                                transition="all 0.2s"
+                            >
+                                {pair.polish}
+                            </Button>
+                        ))}
+                    </VStack>
+                </Grid>
             </VStack>
         );
     };
