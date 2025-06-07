@@ -77,6 +77,12 @@ lessonsData.forEach(lesson => {
 });
 
 const Lessons = () => {
+    useEffect(() => {
+        // Clear old data and reset to new lessons
+        localStorage.clear();
+        setLessons(lessonsData);
+    }, []); // Run once on component mount
+
     const [lessons, setLessons] = useState<Lesson[]>(() => 
         loadFromLocalStorage<Lesson[]>('lessons', lessonsData)
     );
