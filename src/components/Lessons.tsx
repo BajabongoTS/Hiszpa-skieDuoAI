@@ -25,7 +25,7 @@ import {
     Grid,
     ScaleFade
 } from '@chakra-ui/react';
-import { FaArrowLeft, FaChartBar, FaCheck, FaRedo } from 'react-icons/fa';
+import { FaArrowLeft, FaChartBar, FaCheck, FaRedo, FaClock } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { setCookie, getCookie } from '../utils/cookies';
 import type { Question, Lesson } from '../types';
@@ -85,6 +85,7 @@ const Lessons = () => {
     const [lastTestResult, setLastTestResult] = useState<any>(null);
     const { isOpen, onOpen, onClose } = useDisclosure();
     const toast = useToast();
+    const [canExtendTime, setCanExtendTime] = useState(true);
 
     // Save lessons state to cookies whenever it changes
     useEffect(() => {
@@ -123,13 +124,30 @@ const Lessons = () => {
         }
     }, [timeLeft]);
 
+    // Handle extending time
+    const handleExtendTime = () => {
+        if (canExtendTime) {
+            setTimeLeft(prev => prev + 15);
+            setCanExtendTime(false);
+            toast({
+                title: "Dodano czas!",
+                description: "Otrzymałeś dodatkowe 15 sekund.",
+                status: "info",
+                duration: 2000,
+                isClosable: true
+            });
+        }
+    };
+
+    // Reset question state
     const resetQuestion = () => {
         setTextInput('');
         setIsAnsweredCorrectly(false);
         setShowExplanation(false);
         setIncorrectAttempts({});
-        setTestStartTime(new Date());
         setIncorrectPairs(null);
+        setTimeLeft(30);
+        setCanExtendTime(true);
     };
 
     const handleNextQuestion = () => {
@@ -457,10 +475,18 @@ const Lessons = () => {
                             <HStack w="100%" justify="space-between" align="center">
                                 <Text fontSize="xl" fontWeight="bold">{currentQuestion.question}</Text>
                                 <HStack spacing={2}>
+                                    <IconButton
+                                        aria-label="Add 15 seconds"
+                                        icon={<FaClock />}
+                                        onClick={handleExtendTime}
+                                        isDisabled={!canExtendTime || isAnsweredCorrectly}
+                                        colorScheme={canExtendTime ? "teal" : "gray"}
+                                        size="sm"
+                                    />
                                     <CircularProgress
                                         value={(timeLeft / 30) * 100}
-                                        color={timeLeft > 10 ? "teal.400" : "red.400"}
-                                        size="50px"
+                                        color={timeLeft > 10 ? "green.400" : "red.400"}
+                                        size="40px"
                                     >
                                         <CircularProgressLabel>{timeLeft}s</CircularProgressLabel>
                                     </CircularProgress>

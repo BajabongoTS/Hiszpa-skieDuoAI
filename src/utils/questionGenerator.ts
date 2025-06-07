@@ -5,16 +5,6 @@ interface VocabularyPair {
     polish: string;
 }
 
-export const parseVocabulary = (vocabText: string): VocabularyPair[] => {
-    return vocabText
-        .split('\n')
-        .filter(line => line.trim())
-        .map(line => {
-            const [spanish, polish] = line.split(':').map(s => s.trim());
-            return { spanish, polish };
-        });
-};
-
 // Fisher-Yates shuffle algorithm for better randomization
 const shuffleArray = <T>(array: T[]): T[] => {
     const newArray = [...array];
@@ -25,78 +15,124 @@ const shuffleArray = <T>(array: T[]): T[] => {
     return newArray;
 };
 
-export const createQuestionsFromVocab = (vocab: VocabularyPair[]): Question[] => {
-    const questions: Question[] = [];
-
-    // Create matching questions with enhanced randomization
-    const matchingGroups = [];
-    for (let i = 0; i < vocab.length; i += 4) {
-        const group = vocab.slice(i, i + 4);
-        if (group.length === 4) {
-            // Create a randomized group where Spanish and Polish words don't align
-            const shuffledSpanish = shuffleArray(group.map(pair => pair.spanish));
-            const shuffledPolish = shuffleArray(group.map(pair => pair.polish));
+export const parseVocabulary = (vocabText: string): VocabularyPair[] => {
+    return vocabText
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => {
+            const parts = line.split(' - ');
+            if (parts.length !== 2) return null;
             
-            // Ensure Spanish and Polish words don't accidentally align with their pairs
+            return { 
+                spanish: parts[0].trim(), 
+                polish: parts[1].trim() 
+            };
+        })
+        .filter((item): item is VocabularyPair => item !== null);
+};
+
+// Helper function to normalize Spanish text for comparison
+const normalizeSpanishText = (text: string): string => {
+    return text
+        .toLowerCase()
+        // Remove articles
+        .replace(/^(el|la|los|las)\s+/i, '')
+        // Replace diacritical marks
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        // Remove extra whitespace
+        .trim();
+};
+
+export const createQuestionsFromVocab = (vocabulary: VocabularyPair[]): Question[] => {
+    const questions: Question[] = [];
+    
+    // Create multiple choice questions (Spanish to Polish)
+    vocabulary.forEach(item => {
+        const options = [
+            item.polish,
+            ...shuffleArray(vocabulary
+                .filter(v => v.spanish !== item.spanish)
+                .map(v => v.polish))
+                .slice(0, 3)
+        ];
+        
+        questions.push({
+            type: 'multiple-choice',
+            question: `Co oznacza "${item.spanish}"?`,
+            options: shuffleArray(options),
+            correctAnswer: item.polish,
+            explanation: `"${item.spanish}" oznacza "${item.polish}"`
+        });
+    });
+
+    // Create multiple choice questions (Polish to Spanish)
+    vocabulary.forEach(item => {
+        const options = [
+            item.spanish,
+            ...shuffleArray(vocabulary
+                .filter(v => v.polish !== item.polish)
+                .map(v => v.spanish))
+                .slice(0, 3)
+        ];
+        
+        questions.push({
+            type: 'multiple-choice',
+            question: `Jak powiedzieć "${item.polish}" po hiszpańsku?`,
+            options: shuffleArray(options),
+            correctAnswer: item.spanish,
+            explanation: `"${item.polish}" to po hiszpańsku "${item.spanish}"`
+        });
+    });
+
+    // Create text input questions (both directions)
+    vocabulary.forEach(item => {
+        questions.push({
+            type: 'text-input',
+            question: `Wpisz hiszpańskie słowo oznaczające "${item.polish}"`,
+            correctAnswer: normalizeSpanishText(item.spanish),
+            explanation: `"${item.polish}" to po hiszpańsku "${item.spanish}"`
+        });
+
+        questions.push({
+            type: 'text-input',
+            question: `Wpisz polskie tłumaczenie słowa "${item.spanish}"`,
+            correctAnswer: item.polish.toLowerCase(),
+            explanation: `"${item.spanish}" oznacza "${item.polish}"`
+        });
+    });
+
+    // Create matching questions (in groups of 4)
+    for (let i = 0; i < vocabulary.length; i += 4) {
+        const pairs = vocabulary.slice(i, i + 4);
+        if (pairs.length === 4) {
+            // Create shuffled arrays for display
+            const shuffledSpanish = shuffleArray(pairs.map(p => p.spanish));
+            const shuffledPolish = shuffleArray(pairs.map(p => p.polish));
+            
+            // Ensure Spanish and Polish words don't accidentally align
             for (let j = 0; j < shuffledSpanish.length; j++) {
-                const originalPair = group.find(p => p.spanish === shuffledSpanish[j]);
+                const originalPair = pairs.find(p => p.spanish === shuffledSpanish[j]);
                 if (originalPair && originalPair.polish === shuffledPolish[j]) {
-                    // If they align, swap with the next position (or first if at the end)
                     const swapIndex = (j + 1) % shuffledPolish.length;
                     [shuffledPolish[j], shuffledPolish[swapIndex]] = 
                     [shuffledPolish[swapIndex], shuffledPolish[j]];
                 }
             }
 
-            // Create the matching pairs in their original form for answer checking
-            const matchingPairs = group.map(pair => ({
-                spanish: pair.spanish,
-                polish: pair.polish
-            }));
-
             questions.push({
                 type: 'matching',
-                question: `Dopasuj słowa do ich znaczeń (Grupa ${matchingGroups.length + 1})`,
-                matchingPairs,
-                // Add display order for the UI to show words in random order
+                question: 'Dopasuj słowa do ich znaczeń',
+                matchingPairs: pairs,
                 displayOrder: {
                     spanish: shuffledSpanish,
                     polish: shuffledPolish
                 },
                 correctAnswer: 'all-matched'
             });
-            
-            matchingGroups.push(matchingPairs);
         }
     }
 
-    // Create multiple choice questions
-    vocab.forEach(pair => {
-        const incorrectOptions = shuffleArray(
-            vocab.filter(v => v.polish !== pair.polish)
-        ).slice(0, 3).map(v => v.polish);
-
-        const options = shuffleArray([...incorrectOptions, pair.polish]);
-
-        questions.push({
-            type: 'multiple-choice',
-            question: `Co oznacza "${pair.spanish}"?`,
-            options,
-            correctAnswer: pair.polish,
-            explanation: `"${pair.spanish}" oznacza "${pair.polish}" po polsku.`
-        });
-    });
-
-    // Create text input questions
-    vocab.forEach(pair => {
-        questions.push({
-            type: 'text-input',
-            question: `Wpisz hiszpańskie słowo oznaczające "${pair.polish}"`,
-            correctAnswer: pair.spanish,
-            explanation: `"${pair.spanish}" to poprawne tłumaczenie słowa "${pair.polish}".`
-        });
-    });
-
-    // Shuffle the final questions array
+    // Shuffle all questions
     return shuffleArray(questions);
 }; 
