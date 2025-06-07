@@ -1,91 +1,103 @@
 import React from 'react';
-import {
-    VStack,
-    Text,
-    Progress,
-    Box,
-    Heading,
-    Stat,
-    StatLabel,
-    StatNumber,
-    StatGroup,
-    List,
-    ListItem,
-    ListIcon,
-} from '@chakra-ui/react';
-import { FaCheck, FaTimes } from 'react-icons/fa';
+import { Box, VStack, Heading, Text, Progress, Grid, HStack, Icon } from '@chakra-ui/react';
+import { FaTimes, FaSkull } from 'react-icons/fa';
 
 export interface TestResult {
-    lessonTitle: string;
-    totalQuestions: number;
-    correctAnswers: number;
-    incorrectAttempts: Record<string, number>;
-    timeSpent: number;
-    completedAt: Date;
+  lessonTitle: string;
+  totalQuestions: number;
+  correctAnswers: number;
+  incorrectAttempts: Record<string, number>; // question -> number of incorrect attempts
+  timeSpent: number; // in seconds
+  completedAt: Date;
 }
 
 interface TestStatsProps {
-    result: TestResult;
+  result: TestResult;
 }
 
 const TestStats: React.FC<TestStatsProps> = ({ result }) => {
-    const percentageCorrect = Math.round((result.correctAnswers / result.totalQuestions) * 100);
-    const incorrectAnswers = result.totalQuestions - result.correctAnswers;
-    const averageTimePerQuestion = Math.round(result.timeSpent / result.totalQuestions);
+  const accuracy = (result.correctAnswers / result.totalQuestions) * 100;
+  const averageTime = result.timeSpent / result.totalQuestions;
+  
+  // Sort questions by number of incorrect attempts
+  const sortedQuestions = Object.entries(result.incorrectAttempts)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5); // Top 5 most difficult questions
 
-    return (
-        <VStack spacing={6} align="stretch">
-            <Box>
-                <Heading size="md" mb={2}>{result.lessonTitle}</Heading>
-                <Text color="gray.500">
-                    Ukończono: {result.completedAt.toLocaleString()}
-                </Text>
-            </Box>
+  return (
+    <Box p={6} borderWidth={1} borderRadius="lg" bg="white" _dark={{ bg: 'gray.700' }} w="100%">
+      <VStack spacing={6} align="stretch">
+        <Heading size="md">Podsumowanie testu: {result.lessonTitle}</Heading>
+        
+        {/* Overall Statistics */}
+        <Grid templateColumns="repeat(3, 1fr)" gap={4}>
+          <Box p={4} borderRadius="md" bg="teal.50" _dark={{ bg: 'teal.900' }}>
+            <VStack>
+              <Text fontSize="sm">Dokładność</Text>
+              <Heading size="md">{accuracy.toFixed(1)}%</Heading>
+              <Progress
+                value={accuracy}
+                colorScheme="teal"
+                w="100%"
+                borderRadius="full"
+              />
+            </VStack>
+          </Box>
+          
+          <Box p={4} borderRadius="md" bg="purple.50" _dark={{ bg: 'purple.900' }}>
+            <VStack>
+              <Text fontSize="sm">Średni czas na pytanie</Text>
+              <Heading size="md">{averageTime.toFixed(1)}s</Heading>
+            </VStack>
+          </Box>
+          
+          <Box p={4} borderRadius="md" bg="orange.50" _dark={{ bg: 'orange.900' }}>
+            <VStack>
+              <Text fontSize="sm">Poprawne odpowiedzi</Text>
+              <Heading size="md">{result.correctAnswers}/{result.totalQuestions}</Heading>
+            </VStack>
+          </Box>
+        </Grid>
 
-            <Box>
-                <Text mb={2}>Ogólny wynik:</Text>
-                <Progress
-                    value={percentageCorrect}
-                    colorScheme={percentageCorrect >= 70 ? "green" : percentageCorrect >= 50 ? "yellow" : "red"}
-                    size="lg"
-                    borderRadius="md"
-                />
-                <Text mt={2} textAlign="right">{percentageCorrect}%</Text>
-            </Box>
-
-            <StatGroup>
-                <Stat>
-                    <StatLabel>Poprawne odpowiedzi</StatLabel>
-                    <StatNumber color="green.500">{result.correctAnswers}</StatNumber>
-                </Stat>
-                <Stat>
-                    <StatLabel>Błędne odpowiedzi</StatLabel>
-                    <StatNumber color="red.500">{incorrectAnswers}</StatNumber>
-                </Stat>
-                <Stat>
-                    <StatLabel>Czas na pytanie</StatLabel>
-                    <StatNumber>{averageTimePerQuestion}s</StatNumber>
-                </Stat>
-            </StatGroup>
-
-            {Object.entries(result.incorrectAttempts).length > 0 && (
-                <Box>
-                    <Heading size="sm" mb={3}>Pytania z błędami:</Heading>
-                    <List spacing={3}>
-                        {Object.entries(result.incorrectAttempts).map(([question, attempts]) => (
-                            <ListItem key={question}>
-                                <ListIcon as={attempts > 2 ? FaTimes : FaCheck} color={attempts > 2 ? "red.500" : "yellow.500"} />
-                                {question}
-                                <Text as="span" color="gray.500" ml={2}>
-                                    ({attempts} {attempts === 1 ? 'próba' : attempts < 5 ? 'próby' : 'prób'})
-                                </Text>
-                            </ListItem>
-                        ))}
-                    </List>
+        {/* Difficult Questions Section */}
+        {sortedQuestions.length > 0 && (
+          <Box>
+            <Heading size="sm" mb={4}>
+              <HStack>
+                <Icon as={FaSkull} />
+                <Text>Najtrudniejsze pytania</Text>
+              </HStack>
+            </Heading>
+            <VStack spacing={3} align="stretch">
+              {sortedQuestions.map(([question, attempts]) => (
+                <Box
+                  key={question}
+                  p={3}
+                  borderRadius="md"
+                  bg="red.50"
+                  _dark={{ bg: 'red.900' }}
+                >
+                  <HStack justify="space-between">
+                    <Text fontSize="sm">{question}</Text>
+                    <HStack spacing={1}>
+                      <Icon as={FaTimes} color="red.500" />
+                      <Text fontSize="sm" fontWeight="bold">
+                        {attempts} {attempts === 1 ? 'błąd' : 'błędy'}
+                      </Text>
+                    </HStack>
+                  </HStack>
                 </Box>
-            )}
-        </VStack>
-    );
+              ))}
+            </VStack>
+          </Box>
+        )}
+
+        <Text fontSize="sm" color="gray.500" alignSelf="flex-end">
+          Ukończono: {result.completedAt.toLocaleString()}
+        </Text>
+      </VStack>
+    </Box>
+  );
 };
 
 export default TestStats; 

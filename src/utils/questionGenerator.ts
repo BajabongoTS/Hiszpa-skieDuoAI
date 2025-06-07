@@ -5,16 +5,6 @@ interface VocabularyPair {
     polish: string;
 }
 
-// Shuffle array helper function
-const shuffleArray = <T>(array: T[]): T[] => {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-};
-
 export const parseVocabulary = (vocabText: string): VocabularyPair[] => {
     return vocabText
         .split('\n')
@@ -25,40 +15,68 @@ export const parseVocabulary = (vocabText: string): VocabularyPair[] => {
         });
 };
 
+// Fisher-Yates shuffle algorithm for better randomization
+const shuffleArray = <T>(array: T[]): T[] => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+};
+
 export const createQuestionsFromVocab = (vocab: VocabularyPair[]): Question[] => {
     const questions: Question[] = [];
 
-    // Create matching questions
+    // Create matching questions with enhanced randomization
     const matchingGroups = [];
     for (let i = 0; i < vocab.length; i += 4) {
         const group = vocab.slice(i, i + 4);
         if (group.length === 4) {
-            // Shuffle the group before adding it
-            matchingGroups.push(shuffleArray(group));
+            // Create a randomized group where Spanish and Polish words don't align
+            const shuffledSpanish = shuffleArray(group.map(pair => pair.spanish));
+            const shuffledPolish = shuffleArray(group.map(pair => pair.polish));
+            
+            // Ensure Spanish and Polish words don't accidentally align with their pairs
+            for (let j = 0; j < shuffledSpanish.length; j++) {
+                const originalPair = group.find(p => p.spanish === shuffledSpanish[j]);
+                if (originalPair && originalPair.polish === shuffledPolish[j]) {
+                    // If they align, swap with the next position (or first if at the end)
+                    const swapIndex = (j + 1) % shuffledPolish.length;
+                    [shuffledPolish[j], shuffledPolish[swapIndex]] = 
+                    [shuffledPolish[swapIndex], shuffledPolish[j]];
+                }
+            }
+
+            // Create the matching pairs in their original form for answer checking
+            const matchingPairs = group.map(pair => ({
+                spanish: pair.spanish,
+                polish: pair.polish
+            }));
+
+            questions.push({
+                type: 'matching',
+                question: `Dopasuj słowa do ich znaczeń (Grupa ${matchingGroups.length + 1})`,
+                matchingPairs,
+                // Add display order for the UI to show words in random order
+                displayOrder: {
+                    spanish: shuffledSpanish,
+                    polish: shuffledPolish
+                },
+                correctAnswer: 'all-matched'
+            });
+            
+            matchingGroups.push(matchingPairs);
         }
     }
 
-    matchingGroups.forEach((group, index) => {
-        questions.push({
-            type: 'matching',
-            question: `Dopasuj słowa do ich znaczeń (Grupa ${index + 1})`,
-            // Shuffle the pairs again when creating the question
-            matchingPairs: shuffleArray(group),
-            correctAnswer: 'all-matched'
-        });
-    });
-
     // Create multiple choice questions
     vocab.forEach(pair => {
-        // Get 3 random incorrect options
-        const incorrectOptions = vocab
-            .filter(v => v.polish !== pair.polish)
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 3)
-            .map(v => v.polish);
+        const incorrectOptions = shuffleArray(
+            vocab.filter(v => v.polish !== pair.polish)
+        ).slice(0, 3).map(v => v.polish);
 
-        const options = [...incorrectOptions, pair.polish]
-            .sort(() => Math.random() - 0.5);
+        const options = shuffleArray([...incorrectOptions, pair.polish]);
 
         questions.push({
             type: 'multiple-choice',
@@ -79,5 +97,6 @@ export const createQuestionsFromVocab = (vocab: VocabularyPair[]): Question[] =>
         });
     });
 
+    // Shuffle the final questions array
     return shuffleArray(questions);
 }; 
