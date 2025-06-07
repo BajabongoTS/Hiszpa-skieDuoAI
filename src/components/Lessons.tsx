@@ -46,16 +46,6 @@ const normalizeSpanishText = (text: string): string => {
         .trim();
 };
 
-// Add a shuffle function to randomize array order
-const shuffleArray = <T,>(array: T[]): T[] => {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-};
-
 const Lessons = () => {
     // Initialize state from cookies or default values
     const [lessons, setLessons] = useState<Lesson[]>(() => {
@@ -76,11 +66,12 @@ const Lessons = () => {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [showExplanation, setShowExplanation] = useState(false);
     const [textInput, setTextInput] = useState('');
-    const [matchedPairs, setMatchedPairs] = useState<Record<string, string>>({});
     const [selectedSpanish, setSelectedSpanish] = useState<string | null>(null);
+    const [matchedPairs, setMatchedPairs] = useState<Record<string, string>>({});
+    const [incorrectPairs, setIncorrectPairs] = useState<{ spanish: string; polish: string } | null>(null);
     const [isAnsweredCorrectly, setIsAnsweredCorrectly] = useState(false);
     const [timeLeft, setTimeLeft] = useState(30);
-    const [timerActive, setTimerActive] = useState(true);
+    const [timerActive, setTimerActive] = useState(false);
     const [canExtendTime, setCanExtendTime] = useState(true);
     const [questionsToRepeat, setQuestionsToRepeat] = useState<Set<number>>(new Set());
     const [isInRepeatMode, setIsInRepeatMode] = useState(false);
@@ -92,10 +83,6 @@ const Lessons = () => {
         return savedResult ? { ...savedResult, completedAt: new Date(savedResult.completedAt) } : null;
     });
     const { isOpen, onOpen, onClose } = useDisclosure();
-
-    // Add state for shuffled pairs
-    const [shuffledSpanish, setShuffledSpanish] = useState<string[]>([]);
-    const [shuffledPolish, setShuffledPolish] = useState<string[]>([]);
 
     // Save lessons state to cookies whenever it changes
     useEffect(() => {
@@ -145,6 +132,7 @@ const Lessons = () => {
         setTextInput('');
         setMatchedPairs({});
         setSelectedSpanish(null);
+        setIncorrectPairs(null);
         setIsAnsweredCorrectly(false);
         setTimeLeft(30);
         setTimerActive(true);
@@ -153,16 +141,11 @@ const Lessons = () => {
         setIsInRepeatMode(false);
         setIncorrectAttempts({});
         setTestStartTime(new Date());
-        setShuffledSpanish([]);
-        setShuffledPolish([]);
     };
 
-    // Add useEffect to shuffle pairs when question changes
+    // Update the useEffect to remove the unused pairs variable
     useEffect(() => {
         if (currentLesson && currentLesson.questions[currentQuestionIndex] && currentLesson.questions[currentQuestionIndex].type === 'matching' && currentLesson.questions[currentQuestionIndex].matchingPairs) {
-            const pairs = currentLesson.questions[currentQuestionIndex].matchingPairs;
-            setShuffledSpanish(shuffleArray(pairs.map(p => p.spanish)));
-            setShuffledPolish(shuffleArray(pairs.map(p => p.polish)));
             setMatchedPairs({});
             setSelectedSpanish(null);
         }
@@ -256,6 +239,41 @@ const Lessons = () => {
         setLastTestResult(result);
         setCurrentLesson(null); // Reset current lesson
         onOpen();
+    };
+
+    const handleMatchingClick = (value: string, isSpanish: boolean) => {
+        if (!currentLesson || isAnsweredCorrectly) return;
+        
+        if (isSpanish) {
+            setSelectedSpanish(value);
+            setIncorrectPairs(null);
+        } else if (selectedSpanish) {
+            const currentQuestion = currentLesson.questions[currentQuestionIndex];
+            const isCorrectMatch = currentQuestion.matchingPairs?.some(
+                pair => pair.spanish === selectedSpanish && pair.polish === value
+            );
+
+            if (isCorrectMatch) {
+                const newPairs = { ...matchedPairs, [selectedSpanish]: value };
+                setMatchedPairs(newPairs);
+                setSelectedSpanish(null);
+                setIncorrectPairs(null);
+
+                // Check if all pairs are matched correctly
+                if (currentQuestion.matchingPairs && Object.keys(newPairs).length === currentQuestion.matchingPairs.length) {
+                    setIsAnsweredCorrectly(true);
+                    setShowExplanation(true);
+                }
+            } else {
+                // Show error feedback for both words
+                setIncorrectPairs({ spanish: selectedSpanish, polish: value });
+                handleIncorrectAnswer(currentQuestion.question);
+                setTimeout(() => {
+                    setIncorrectPairs(null);
+                    setSelectedSpanish(null);
+                }, 1000);
+            }
+        }
     };
 
     const handleAnswer = (answer: string) => {
@@ -413,7 +431,7 @@ const Lessons = () => {
                                     key={pair.spanish}
                                     size="md"
                                     variant={selectedSpanish === pair.spanish ? 'solid' : 'outline'}
-                                    colorScheme={incorrectAttempts[pair.spanish] ? 'red' : 'teal'}
+                                    colorScheme={incorrectPairs?.spanish === pair.spanish ? 'red' : 'teal'}
                                     onClick={() => handleMatchingClick(pair.spanish, true)}
                                     isDisabled={matchedPairs[pair.spanish] !== undefined || isAnsweredCorrectly}
                                     w="100%"
@@ -470,7 +488,7 @@ const Lessons = () => {
                                     key={pair.polish}
                                     size="md"
                                     variant="outline"
-                                    colorScheme={incorrectAttempts[pair.polish] ? 'red' : 'teal'}
+                                    colorScheme={incorrectPairs?.polish === pair.polish ? 'red' : 'teal'}
                                     onClick={() => handleMatchingClick(pair.polish, false)}
                                     isDisabled={Object.values(matchedPairs).includes(pair.polish) || isAnsweredCorrectly}
                                     w="100%"
