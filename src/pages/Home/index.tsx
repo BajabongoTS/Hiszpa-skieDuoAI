@@ -9,6 +9,12 @@ const Home = () => {
     const bgColor = useColorModeValue('white', 'gray.700');
     const borderColor = useColorModeValue('gray.200', 'gray.600');
 
+    const getTodayLessonsCount = () => {
+        const today = new Date().toDateString();
+        const todayKey = `todayLessons_${today}`;
+        return getCookie(todayKey) || 0;
+    };
+
     const calculateStats = () => {
         const totalLessons = lessonsData.length;
         const completedLessons = lessonsData.filter((lesson: Lesson) => lesson.progress === 100).length;
@@ -39,7 +45,8 @@ const Home = () => {
             averageProgress: Math.round(averageProgress),
             averageScore,
             totalTime,
-            averageBestScore
+            averageBestScore,
+            todayLessons: getTodayLessonsCount()
         };
     };
 
@@ -100,7 +107,7 @@ const Home = () => {
                                 <StatLabel>Dzisiejsza aktywność</StatLabel>
                             </HStack>
                             <StatNumber>
-                                {getCookie('todayLessons') || 0}
+                                {stats.todayLessons}
                             </StatNumber>
                             <StatHelpText>ukończonych lekcji</StatHelpText>
                         </Stat>

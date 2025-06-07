@@ -15,6 +15,7 @@ export interface Lesson {
     questions: Question[];
     lastCompleted?: Date;
     bestScore?: number;
+    lastAttemptDate?: Date | null;
 }
 
 export interface TestResult {
