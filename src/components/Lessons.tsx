@@ -22,7 +22,9 @@ import {
     Tooltip,
     Icon,
     Grid,
-    ScaleFade
+    ScaleFade,
+    SimpleGrid,
+    useColorModeValue
 } from '@chakra-ui/react';
 import { FaArrowLeft, FaClock } from 'react-icons/fa';
 import { motion } from 'framer-motion';
@@ -375,125 +377,204 @@ const Lessons = () => {
         }
     };
 
-    const renderMatchingQuestion = (question: Question) => {
-        if (!question.matchingPairs) return null;
-
-        const spanishWords = question.matchingPairs.map(pair => pair.spanish);
-        const polishWords = question.matchingPairs.map(pair => pair.polish);
-
-        return (
-            <Grid templateColumns="1fr 1fr" gap={4}>
-                <VStack spacing={4}>
-                    {spanishWords.map(word => (
-                        <Button
-                            key={word}
-                            onClick={() => handleMatchingClick(word, true)}
-                            colorScheme={selectedSpanish === word ? 'blue' : 'gray'}
-                            isDisabled={word in matchedPairs}
-                            w="100%"
-                        >
-                            {word}
-                        </Button>
-                    ))}
-                </VStack>
-                <VStack spacing={4}>
-                    {polishWords.map(word => (
-                        <Button
-                            key={word}
-                            onClick={() => handleMatchingClick(word, false)}
-                            colorScheme="gray"
-                            isDisabled={Object.values(matchedPairs).includes(word)}
-                            w="100%"
-                        >
-                            {word}
-                        </Button>
-                    ))}
-                </VStack>
-            </Grid>
-        );
-    };
-
     const renderQuestion = (question: Question) => {
         if (!question) return null;
 
         return (
-            <VStack spacing={4} align="stretch">
-                <Box>
-                    <Text fontSize="xl" mb={2}>{question.question}</Text>
+            <VStack spacing={6} align="stretch" w="100%" maxW="800px" mx="auto">
+                <Box 
+                    p={6} 
+                    bg={useColorModeValue('white', 'gray.700')} 
+                    borderRadius="lg" 
+                    boxShadow="md"
+                    borderWidth="1px"
+                    borderColor={useColorModeValue('gray.200', 'gray.600')}
+                >
+                    <Text fontSize="2xl" fontWeight="bold" mb={4}>{question.question}</Text>
                     {showExplanation && question.explanation && (
-                        <Text color="gray.500">{question.explanation}</Text>
+                        <Text color={useColorModeValue('gray.600', 'gray.300')} fontSize="lg">
+                            {question.explanation}
+                        </Text>
                     )}
                 </Box>
 
                 {question.type === 'multiple-choice' && question.options && (
-                    <VStack spacing={3} align="stretch">
+                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="100%">
                         {question.options.map((option, index) => (
-                            <Button
-                                key={index}
-                                onClick={() => handleAnswer(option)}
-                                colorScheme="blue"
-                                variant="outline"
-                                isDisabled={isAnsweredCorrectly || showExplanation}
-                            >
-                                {option}
-                            </Button>
+                            <ScaleFade in={true} key={index}>
+                                <Button
+                                    key={index}
+                                    onClick={() => handleAnswer(option)}
+                                    size="lg"
+                                    height="80px"
+                                    w="100%"
+                                    colorScheme={isAnsweredCorrectly ? 'green' : 'blue'}
+                                    variant={isAnsweredCorrectly ? 'solid' : 'outline'}
+                                    isDisabled={isAnsweredCorrectly || showExplanation}
+                                    _hover={{ transform: 'scale(1.02)' }}
+                                    transition="all 0.2s"
+                                    fontSize="xl"
+                                    position="relative"
+                                    overflow="hidden"
+                                >
+                                    <Box
+                                        position="absolute"
+                                        top="0"
+                                        left="0"
+                                        w="4px"
+                                        h="100%"
+                                        bg={useColorModeValue('blue.500', 'blue.300')}
+                                        opacity={0.5}
+                                    />
+                                    {option}
+                                </Button>
+                            </ScaleFade>
                         ))}
-                    </VStack>
+                    </SimpleGrid>
                 )}
 
                 {question.type === 'text-input' && (
-                    <VStack spacing={3}>
-                        <Input
-                            value={textInput}
-                            onChange={(e) => setTextInput(e.target.value)}
-                            placeholder="Wpisz odpowiedź..."
-                            isDisabled={isAnsweredCorrectly || showExplanation}
-                        />
-                        <Button
-                            onClick={() => handleAnswer(textInput)}
-                            colorScheme="blue"
-                            isDisabled={!textInput || isAnsweredCorrectly || showExplanation}
+                    <VStack spacing={4} w="100%">
+                        <Box
+                            p={6}
+                            bg={useColorModeValue('white', 'gray.700')}
+                            borderRadius="lg"
+                            boxShadow="md"
+                            borderWidth="1px"
+                            borderColor={useColorModeValue('gray.200', 'gray.600')}
+                            w="100%"
                         >
-                            Sprawdź
-                        </Button>
+                            <Input
+                                value={textInput}
+                                onChange={(e) => setTextInput(e.target.value)}
+                                placeholder="Wpisz odpowiedź..."
+                                size="lg"
+                                fontSize="xl"
+                                textAlign="center"
+                                isDisabled={isAnsweredCorrectly || showExplanation}
+                                _focus={{
+                                    borderColor: 'blue.400',
+                                    boxShadow: '0 0 0 1px var(--chakra-colors-blue-400)'
+                                }}
+                                autoFocus
+                            />
+                            <Button
+                                onClick={() => handleAnswer(textInput)}
+                                colorScheme="blue"
+                                size="lg"
+                                width="100%"
+                                mt={4}
+                                isDisabled={!textInput || isAnsweredCorrectly || showExplanation}
+                                _hover={{ transform: 'translateY(-2px)', boxShadow: 'lg' }}
+                                transition="all 0.2s"
+                            >
+                                Sprawdź
+                            </Button>
+                        </Box>
                     </VStack>
                 )}
 
-                {question.type === 'matching' && renderMatchingQuestion(question)}
-
-                {question.type === 'flashcard' && question.flashcardData && (
-                    <VStack spacing={4}>
-                        <Box
-                            p={6}
-                            bg="white"
-                            borderRadius="lg"
-                            boxShadow="md"
-                            textAlign="center"
-                        >
-                            <Text fontSize="2xl">{question.flashcardData.spanish}</Text>
-                            {showExplanation && (
-                                <Text mt={4} color="gray.600">
-                                    {question.flashcardData.polish}
+                {question.type === 'matching' && (
+                    <Box
+                        p={6}
+                        bg={useColorModeValue('white', 'gray.700')}
+                        borderRadius="lg"
+                        boxShadow="md"
+                        borderWidth="1px"
+                        borderColor={useColorModeValue('gray.200', 'gray.600')}
+                        w="100%"
+                    >
+                        <Grid templateColumns="1fr 1fr" gap={8}>
+                            <VStack spacing={4} align="stretch">
+                                <Text fontSize="lg" fontWeight="bold" textAlign="center" mb={2}>
+                                    Hiszpański
                                 </Text>
-                            )}
-                        </Box>
-                        {!showExplanation && (
-                            <Button onClick={() => setShowExplanation(true)}>
-                                Pokaż tłumaczenie
-                            </Button>
-                        )}
-                    </VStack>
+                                {question.matchingPairs?.map((pair, index) => (
+                                    <ScaleFade in={true} key={`spanish-${index}`}>
+                                        <Button
+                                            onClick={() => handleMatchingClick(pair.spanish, true)}
+                                            colorScheme={
+                                                selectedSpanish === pair.spanish
+                                                    ? 'blue'
+                                                    : pair.spanish in matchedPairs
+                                                    ? 'green'
+                                                    : 'gray'
+                                            }
+                                            variant={selectedSpanish === pair.spanish ? 'solid' : 'outline'}
+                                            isDisabled={pair.spanish in matchedPairs}
+                                            w="100%"
+                                            h="60px"
+                                            fontSize="lg"
+                                            _hover={{ transform: 'scale(1.02)' }}
+                                            transition="all 0.2s"
+                                        >
+                                            {pair.spanish}
+                                        </Button>
+                                    </ScaleFade>
+                                ))}
+                            </VStack>
+                            <VStack spacing={4} align="stretch">
+                                <Text fontSize="lg" fontWeight="bold" textAlign="center" mb={2}>
+                                    Polski
+                                </Text>
+                                {question.matchingPairs?.map((pair, index) => (
+                                    <ScaleFade in={true} key={`polish-${index}`}>
+                                        <Button
+                                            onClick={() => handleMatchingClick(pair.polish, false)}
+                                            colorScheme={
+                                                Object.values(matchedPairs).includes(pair.polish)
+                                                    ? 'green'
+                                                    : 'gray'
+                                            }
+                                            variant="outline"
+                                            isDisabled={Object.values(matchedPairs).includes(pair.polish)}
+                                            w="100%"
+                                            h="60px"
+                                            fontSize="lg"
+                                            _hover={{ transform: 'scale(1.02)' }}
+                                            transition="all 0.2s"
+                                        >
+                                            {pair.polish}
+                                        </Button>
+                                    </ScaleFade>
+                                ))}
+                            </VStack>
+                        </Grid>
+                    </Box>
                 )}
 
                 {incorrectPairs && (
-                    <Box mt={4} p={4} bg="red.50" borderRadius="md">
-                        <Text color="red.600">
-                            Twoja odpowiedź: {incorrectPairs.spanish}
-                        </Text>
-                        <Text color="green.600">
-                            Poprawna odpowiedź: {incorrectPairs.polish}
-                        </Text>
+                    <Box
+                        mt={4}
+                        p={6}
+                        bg={useColorModeValue('red.50', 'red.900')}
+                        borderRadius="lg"
+                        borderWidth="1px"
+                        borderColor={useColorModeValue('red.200', 'red.700')}
+                    >
+                        <VStack spacing={2} align="stretch">
+                            <Text color={useColorModeValue('red.600', 'red.200')} fontSize="lg">
+                                Twoja odpowiedź: {incorrectPairs.spanish}
+                            </Text>
+                            <Text color={useColorModeValue('green.600', 'green.200')} fontSize="lg">
+                                Poprawna odpowiedź: {incorrectPairs.polish}
+                            </Text>
+                        </VStack>
                     </Box>
+                )}
+
+                {showExplanation && !isAnsweredCorrectly && (
+                    <Button
+                        onClick={handleNextQuestion}
+                        colorScheme="blue"
+                        size="lg"
+                        width="100%"
+                        mt={4}
+                        _hover={{ transform: 'translateY(-2px)', boxShadow: 'lg' }}
+                        transition="all 0.2s"
+                    >
+                        Następne pytanie
+                    </Button>
                 )}
             </VStack>
         );
