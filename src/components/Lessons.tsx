@@ -139,6 +139,14 @@ const Lessons = () => {
         }
     };
 
+    // Start lesson function
+    const startLesson = (lesson: Lesson) => {
+        setCurrentLesson(lesson);
+        setCurrentQuestionIndex(0);
+        resetQuestion();
+        setTestStartTime(new Date());
+    };
+
     // Reset question state
     const resetQuestion = () => {
         setTextInput('');
@@ -560,34 +568,20 @@ const Lessons = () => {
                                 <Heading size="md">{lesson.title}</Heading>
                                 <Text>{lesson.description}</Text>
                                 <Progress value={lesson.progress} rounded="md" />
-                                <HStack spacing={2}>
-                                    <Button
-                                        onClick={() => {
-                                            setCurrentLesson(lesson);
-                                            setCurrentQuestionIndex(0);
-                                        }}
-                                        colorScheme="teal"
-                                        flex="1"
-                                        leftIcon={lesson.progress === 100 ? <FaRedo /> : undefined}
-                                    >
-                                        {lesson.progress === 100 ? 'Powtórz' : 'Rozpocznij'}
-                                    </Button>
-                                    {lesson.progress === 100 && (
-                                        <Tooltip label={`Najlepszy wynik: ${lesson.bestScore}%`} placement="top">
-                                            <Box
-                                                as="span"
-                                                color="green.500"
-                                                _dark={{ color: 'green.300' }}
-                                            >
-                                                <Icon as={FaCheck} boxSize={5} />
-                                            </Box>
-                                        </Tooltip>
-                                    )}
-                                </HStack>
-                                {lesson.lastCompleted && (
-                                    <Text fontSize="sm" color="gray.500">
-                                        Ostatnio ukończono: {new Date(lesson.lastCompleted).toLocaleDateString()}
-                                    </Text>
+                                <Button
+                                    colorScheme="teal"
+                                    onClick={() => startLesson(lesson)}
+                                    leftIcon={lesson.progress === 100 ? <FaRedo /> : undefined}
+                                >
+                                    {lesson.progress === 100 ? 'Powtórz' : 'Rozpocznij'}
+                                </Button>
+                                {lesson.bestScore !== undefined && lesson.bestScore > 0 && (
+                                    <Tooltip label={`Najlepszy wynik: ${lesson.bestScore}%`} placement="top">
+                                        <HStack spacing={2} justify="center">
+                                            <Icon as={FaCheck} boxSize={5} />
+                                            <Text>{lesson.bestScore}%</Text>
+                                        </HStack>
+                                    </Tooltip>
                                 )}
                             </VStack>
                         </Box>
