@@ -28,7 +28,7 @@ const StatisticsPage = () => {
         const topicStats: Record<string, { total: number; incorrect: number }> = {};
 
         testResults.forEach(result => {
-            Object.entries(result.incorrectAttempts).forEach(([question, attempts]) => {
+            Object.entries(result.incorrectAttempts).forEach(([_, attempts]) => {
                 const topic = result.lessonTitle;
                 if (!topicStats[topic]) {
                     topicStats[topic] = { total: 0, incorrect: 0 };
