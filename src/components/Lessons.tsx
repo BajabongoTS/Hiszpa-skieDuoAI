@@ -1,12 +1,12 @@
 import { Box, Grid, VStack, Heading, Text, Progress, Button, useToast, ScaleFade, Input, HStack, Tooltip, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, useDisclosure, IconButton, CircularProgress, CircularProgressLabel } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { FaCheck, FaChartBar, FaClock, FaArrowLeft } from 'react-icons/fa';
+import { FaCheck, FaChartBar, FaClock, FaArrowLeft, FaRedo } from 'react-icons/fa';
 import TestStats from './TestStats';
 import type { TestResult } from './TestStats';
 import { parseVocabulary, createQuestionsFromVocab } from '../utils/vocabulary';
 import { bodyPartsVocab, foodVocab, excursionVocab } from '../data/vocabulary';
-import { saveToLocalStorage, loadFromLocalStorage } from '../utils/localStorage';
+import { setCookie, getCookie } from '../utils/cookies';
 
 const MotionBox = motion(Box);
 
@@ -42,6 +42,8 @@ interface Lesson {
     progress: number;
     questions: Question[];
     vocabulary: Array<{ spanish: string; polish: string }>;
+    lastCompleted?: Date;
+    bestScore?: number;
 }
 
 const lessonsData: Lesson[] = [
@@ -77,21 +79,14 @@ lessonsData.forEach(lesson => {
 });
 
 const Lessons = () => {
-    useEffect(() => {
-        // Clear old data and reset to new lessons
-        localStorage.clear();
-        setLessons(lessonsData);
-    }, []); // Run once on component mount
-
-    const [lessons, setLessons] = useState<Lesson[]>(() => 
-        loadFromLocalStorage<Lesson[]>('lessons', lessonsData)
-    );
-    const [currentLesson, setCurrentLesson] = useState<Lesson | null>(() =>
-        loadFromLocalStorage<Lesson | null>('currentLesson', null)
-    );
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(() =>
-        loadFromLocalStorage<number>('currentQuestionIndex', 0)
-    );
+    // Initialize state from cookies or default values
+    const [lessons, setLessons] = useState<Lesson[]>(() => {
+        const savedLessons = getCookie('lessons');
+        return savedLessons || lessonsData;
+    });
+    
+    const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [showExplanation, setShowExplanation] = useState(false);
     const [textInput, setTextInput] = useState('');
     const [matchedPairs, setMatchedPairs] = useState<Record<string, string>>({});
@@ -101,19 +96,28 @@ const Lessons = () => {
     const [timeLeft, setTimeLeft] = useState(30);
     const [timerActive, setTimerActive] = useState(true);
     const [canExtendTime, setCanExtendTime] = useState(true);
-    const [questionsToRepeat, setQuestionsToRepeat] = useState<Set<number>>(() => 
-        new Set(loadFromLocalStorage<number[]>('questionsToRepeat', []))
-    );
-    const [isInRepeatMode, setIsInRepeatMode] = useState(() =>
-        loadFromLocalStorage<boolean>('isInRepeatMode', false)
-    );
+    const [questionsToRepeat, setQuestionsToRepeat] = useState<Set<number>>(new Set());
+    const [isInRepeatMode, setIsInRepeatMode] = useState(false);
     const toast = useToast();
-    const [incorrectAttempts, setIncorrectAttempts] = useState<Record<string, number>>(() =>
-        loadFromLocalStorage<Record<string, number>>('incorrectAttempts', {})
-    );
+    const [incorrectAttempts, setIncorrectAttempts] = useState<Record<string, number>>({});
     const [testStartTime, setTestStartTime] = useState<Date | null>(null);
-    const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
+    const [lastTestResult, setLastTestResult] = useState<TestResult | null>(() => {
+        const savedResult = getCookie('lastTestResult');
+        return savedResult || null;
+    });
     const { isOpen, onOpen, onClose } = useDisclosure();
+
+    // Save lessons state to cookies whenever it changes
+    useEffect(() => {
+        setCookie('lessons', lessons);
+    }, [lessons]);
+
+    // Save last test result to cookies whenever it changes
+    useEffect(() => {
+        if (lastTestResult) {
+            setCookie('lastTestResult', lastTestResult);
+        }
+    }, [lastTestResult]);
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
@@ -181,43 +185,21 @@ const Lessons = () => {
     };
 
     const startLesson = (lesson: Lesson) => {
-        if (currentLesson?.id === lesson.id && currentQuestionIndex > 0) {
-            const shouldResume = window.confirm(
-                'Znaleziono zapisany postęp w tej lekcji. Czy chcesz kontynuować od ostatniego pytania?'
-            );
-            if (!shouldResume) {
-                setCurrentQuestionIndex(0);
-                setShowExplanation(false);
-                setTextInput('');
-                setMatchedPairs({});
-                setSelectedSpanish(null);
-                setIncorrectPairs(null);
-                setIsAnsweredCorrectly(false);
-                setTimeLeft(30);
-                setTimerActive(true);
-                setCanExtendTime(true);
-                setQuestionsToRepeat(new Set());
-                setIsInRepeatMode(false);
-                setIncorrectAttempts({});
-                setTestStartTime(new Date());
-            }
-        } else {
-            setCurrentQuestionIndex(0);
-            setShowExplanation(false);
-            setTextInput('');
-            setMatchedPairs({});
-            setSelectedSpanish(null);
-            setIncorrectPairs(null);
-            setIsAnsweredCorrectly(false);
-            setTimeLeft(30);
-            setTimerActive(true);
-            setCanExtendTime(true);
-            setQuestionsToRepeat(new Set());
-            setIsInRepeatMode(false);
-            setIncorrectAttempts({});
-            setTestStartTime(new Date());
-        }
         setCurrentLesson(lesson);
+        setCurrentQuestionIndex(0);
+        setShowExplanation(false);
+        setTextInput('');
+        setMatchedPairs({});
+        setSelectedSpanish(null);
+        setIncorrectPairs(null);
+        setIsAnsweredCorrectly(false);
+        setTimeLeft(30);
+        setTimerActive(true);
+        setCanExtendTime(true);
+        setQuestionsToRepeat(new Set());
+        setIsInRepeatMode(false);
+        setIncorrectAttempts({});
+        setTestStartTime(new Date());
     };
 
     const addToQuestionsToRepeat = (questionIndex: number) => {
@@ -266,25 +248,42 @@ const Lessons = () => {
         if (!testStartTime) return;
 
         const timeSpent = Math.floor((new Date().getTime() - testStartTime.getTime()) / 1000);
+        const correctAnswers = lesson.questions.length - Object.keys(incorrectAttempts).length;
+        const score = Math.round((correctAnswers / lesson.questions.length) * 100);
+
         const result: TestResult = {
             lessonTitle: lesson.title,
             totalQuestions: lesson.questions.length,
-            correctAnswers: lesson.questions.length - Object.keys(incorrectAttempts).length,
+            correctAnswers,
             incorrectAttempts,
             timeSpent,
             completedAt: new Date()
         };
 
-        // Save test result to local storage
-        const existingResults = loadFromLocalStorage<TestResult[]>('testResults', []);
-        saveToLocalStorage('testResults', [result, ...existingResults]);
+        // Update lesson progress and best score
+        setLessons(prevLessons => {
+            return prevLessons.map(l => {
+                if (l.id === lesson.id) {
+                    return {
+                        ...l,
+                        progress: 100,
+                        lastCompleted: new Date(),
+                        bestScore: l.bestScore ? Math.max(l.bestScore, score) : score
+                    };
+                }
+                return l;
+            });
+        });
+
+        // Save test results
+        const existingResults = getCookie('testResults') || [];
+        setCookie('testResults', [result, ...existingResults]);
 
         // Update today's lesson count
-        const todayLessons = loadFromLocalStorage<number>('todayLessons', 0);
-        saveToLocalStorage('todayLessons', todayLessons + 1);
+        const todayLessons = getCookie('todayLessons') || 0;
+        setCookie('todayLessons', todayLessons + 1);
 
         setLastTestResult(result);
-        clearSavedProgress();
         onOpen();
     };
 
@@ -618,15 +617,6 @@ const Lessons = () => {
         }
     };
 
-    // Add clearSavedProgress function
-    const clearSavedProgress = () => {
-        localStorage.removeItem('currentLesson');
-        localStorage.removeItem('currentQuestionIndex');
-        localStorage.removeItem('questionsToRepeat');
-        localStorage.removeItem('isInRepeatMode');
-        localStorage.removeItem('incorrectAttempts');
-    };
-
     if (currentLesson) {
         const currentQuestion = currentLesson.questions[currentQuestionIndex];
         const isLastQuestion = !isInRepeatMode && 
@@ -775,11 +765,12 @@ const Lessons = () => {
                                         onClick={() => startLesson(lesson)}
                                         colorScheme="teal"
                                         flex="1"
+                                        leftIcon={lesson.progress === 100 ? <FaRedo /> : undefined}
                                     >
                                         {lesson.progress === 100 ? 'Powtórz' : 'Rozpocznij'}
                                     </Button>
                                     {lesson.progress === 100 && (
-                                        <Tooltip label="Ukończono!" placement="top">
+                                        <Tooltip label={`Najlepszy wynik: ${lesson.bestScore}%`} placement="top">
                                             <Box
                                                 as="span"
                                                 color="green.500"
@@ -790,6 +781,11 @@ const Lessons = () => {
                                         </Tooltip>
                                     )}
                                 </HStack>
+                                {lesson.lastCompleted && (
+                                    <Text fontSize="sm" color="gray.500">
+                                        Ostatnio ukończono: {new Date(lesson.lastCompleted).toLocaleDateString()}
+                                    </Text>
+                                )}
                             </VStack>
                         </Box>
                     </MotionBox>

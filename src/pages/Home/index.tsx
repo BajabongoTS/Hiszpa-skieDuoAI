@@ -1,18 +1,20 @@
 import { Box, VStack, Heading, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText, useColorModeValue, Table, Thead, Tbody, Tr, Th, Td, Progress, Text, HStack, Icon } from '@chakra-ui/react';
-import { loadFromLocalStorage } from '../../utils/localStorage';
-import type { Lesson, TestResult } from '../../types';
+import { getCookie } from '../utils/cookies';
+import type { Lesson, TestResult } from '../types';
 import { FaTrophy, FaGraduationCap, FaClock, FaCalendarCheck } from 'react-icons/fa';
 
 const Home = () => {
-    const lessonsData = loadFromLocalStorage<Lesson[]>('lessons', []);
-    const testResults = loadFromLocalStorage<TestResult[]>('testResults', []);
+    const lessonsData = getCookie('lessons') || [];
+    const testResults = getCookie('testResults') || [];
     const bgColor = useColorModeValue('white', 'gray.700');
     const borderColor = useColorModeValue('gray.200', 'gray.600');
 
     const calculateStats = () => {
         const totalLessons = lessonsData.length;
         const completedLessons = lessonsData.filter((lesson: Lesson) => lesson.progress === 100).length;
-        const averageProgress = lessonsData.reduce((acc: number, lesson: Lesson) => acc + lesson.progress, 0) / totalLessons;
+        const averageProgress = lessonsData.length > 0
+            ? lessonsData.reduce((acc: number, lesson: Lesson) => acc + lesson.progress, 0) / totalLessons
+            : 0;
 
         // Calculate average score from test results
         const averageScore = testResults.length > 0
@@ -23,12 +25,21 @@ const Home = () => {
         // Calculate total learning time
         const totalTime = testResults.reduce((acc, result) => acc + result.timeSpent, 0);
 
+        // Get best scores
+        const bestScores = lessonsData
+            .filter((lesson: Lesson) => lesson.bestScore !== undefined)
+            .map((lesson: Lesson) => lesson.bestScore!);
+        const averageBestScore = bestScores.length > 0
+            ? Math.round(bestScores.reduce((acc, score) => acc + score, 0) / bestScores.length)
+            : 0;
+
         return {
             totalLessons,
             completedLessons,
             averageProgress: Math.round(averageProgress),
             averageScore,
-            totalTime
+            totalTime,
+            averageBestScore
         };
     };
 
@@ -53,7 +64,9 @@ const Home = () => {
                             </HStack>
                             <StatNumber>{stats.averageProgress}%</StatNumber>
                             <Progress value={stats.averageProgress} colorScheme="teal" size="sm" mt={2} />
-                            <StatHelpText>Średni postęp ze wszystkich lekcji</StatHelpText>
+                            <StatHelpText>
+                                Ukończono {stats.completedLessons} z {stats.totalLessons} lekcji
+                            </StatHelpText>
                         </Stat>
                     </Box>
 
@@ -61,11 +74,11 @@ const Home = () => {
                         <Stat>
                             <HStack spacing={2}>
                                 <Icon as={FaTrophy} color="yellow.500" />
-                                <StatLabel>Średni wynik</StatLabel>
+                                <StatLabel>Najlepsze wyniki</StatLabel>
                             </HStack>
-                            <StatNumber>{stats.averageScore}%</StatNumber>
-                            <Progress value={stats.averageScore} colorScheme="yellow" size="sm" mt={2} />
-                            <StatHelpText>ze wszystkich testów</StatHelpText>
+                            <StatNumber>{stats.averageBestScore}%</StatNumber>
+                            <Progress value={stats.averageBestScore} colorScheme="yellow" size="sm" mt={2} />
+                            <StatHelpText>średnia najlepszych wyników</StatHelpText>
                         </Stat>
                     </Box>
 
@@ -87,7 +100,7 @@ const Home = () => {
                                 <StatLabel>Dzisiejsza aktywność</StatLabel>
                             </HStack>
                             <StatNumber>
-                                {loadFromLocalStorage<number>('todayLessons', 0)}
+                                {getCookie('todayLessons') || 0}
                             </StatNumber>
                             <StatHelpText>ukończonych lekcji</StatHelpText>
                         </Stat>
@@ -103,21 +116,28 @@ const Home = () => {
                                     <Tr>
                                         <Th>Lekcja</Th>
                                         <Th isNumeric>Wynik</Th>
+                                        <Th isNumeric>Najlepszy wynik</Th>
                                         <Th isNumeric>Czas (s)</Th>
                                         <Th>Data</Th>
                                     </Tr>
                                 </Thead>
                                 <Tbody>
-                                    {testResults.slice(0, 3).map((result, index) => (
-                                        <Tr key={index}>
-                                            <Td>{result.lessonTitle}</Td>
-                                            <Td isNumeric>
-                                                {Math.round((result.correctAnswers / result.totalQuestions) * 100)}%
-                                            </Td>
-                                            <Td isNumeric>{result.timeSpent}</Td>
-                                            <Td>{new Date(result.completedAt).toLocaleString()}</Td>
-                                        </Tr>
-                                    ))}
+                                    {testResults.slice(0, 3).map((result, index) => {
+                                        const lesson = lessonsData.find(l => l.title === result.lessonTitle);
+                                        return (
+                                            <Tr key={index}>
+                                                <Td>{result.lessonTitle}</Td>
+                                                <Td isNumeric>
+                                                    {Math.round((result.correctAnswers / result.totalQuestions) * 100)}%
+                                                </Td>
+                                                <Td isNumeric>
+                                                    {lesson?.bestScore || '-'}
+                                                </Td>
+                                                <Td isNumeric>{result.timeSpent}</Td>
+                                                <Td>{new Date(result.completedAt).toLocaleString()}</Td>
+                                            </Tr>
+                                        );
+                                    })}
                                 </Tbody>
                             </Table>
                         </Box>
