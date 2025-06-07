@@ -1,6 +1,7 @@
-import { Box, VStack, Heading, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText, useColorModeValue, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react';
+import { Box, VStack, Heading, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText, useColorModeValue, Table, Thead, Tbody, Tr, Th, Td, Progress, Text, HStack, Icon } from '@chakra-ui/react';
 import { loadFromLocalStorage } from '../../utils/localStorage';
 import type { Lesson, TestResult } from '../../types';
+import { FaTrophy, FaGraduationCap, FaClock, FaCalendarCheck } from 'react-icons/fa';
 
 const Home = () => {
     const lessonsData = loadFromLocalStorage<Lesson[]>('lessons', []);
@@ -19,11 +20,15 @@ const Home = () => {
                 acc + (result.correctAnswers / result.totalQuestions) * 100, 0) / testResults.length)
             : 0;
 
+        // Calculate total learning time
+        const totalTime = testResults.reduce((acc, result) => acc + result.timeSpent, 0);
+
         return {
             totalLessons,
             completedLessons,
             averageProgress: Math.round(averageProgress),
-            averageScore
+            averageScore,
+            totalTime
         };
     };
 
@@ -32,40 +37,59 @@ const Home = () => {
     return (
         <Box p={8} maxW="1200px" mx="auto">
             <VStack spacing={8} align="stretch">
-                <Heading>Panel główny</Heading>
-                
+                <Box>
+                    <Heading mb={2}>Panel główny</Heading>
+                    <Text color="gray.600" _dark={{ color: 'gray.300' }}>
+                        Witaj w HiszpańskiDuo! Oto Twój postęp w nauce.
+                    </Text>
+                </Box>
+
                 <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
                     <Box p={6} bg={bgColor} borderRadius="lg" borderWidth="1px" borderColor={borderColor}>
                         <Stat>
-                            <StatLabel>Postęp</StatLabel>
+                            <HStack spacing={2}>
+                                <Icon as={FaGraduationCap} color="teal.500" />
+                                <StatLabel>Postęp nauki</StatLabel>
+                            </HStack>
                             <StatNumber>{stats.averageProgress}%</StatNumber>
+                            <Progress value={stats.averageProgress} colorScheme="teal" size="sm" mt={2} />
                             <StatHelpText>Średni postęp ze wszystkich lekcji</StatHelpText>
                         </Stat>
                     </Box>
 
                     <Box p={6} bg={bgColor} borderRadius="lg" borderWidth="1px" borderColor={borderColor}>
                         <Stat>
-                            <StatLabel>Ukończone lekcje</StatLabel>
-                            <StatNumber>{stats.completedLessons}</StatNumber>
-                            <StatHelpText>z {stats.totalLessons} lekcji</StatHelpText>
-                        </Stat>
-                    </Box>
-
-                    <Box p={6} bg={bgColor} borderRadius="lg" borderWidth="1px" borderColor={borderColor}>
-                        <Stat>
-                            <StatLabel>Średni wynik</StatLabel>
+                            <HStack spacing={2}>
+                                <Icon as={FaTrophy} color="yellow.500" />
+                                <StatLabel>Średni wynik</StatLabel>
+                            </HStack>
                             <StatNumber>{stats.averageScore}%</StatNumber>
+                            <Progress value={stats.averageScore} colorScheme="yellow" size="sm" mt={2} />
                             <StatHelpText>ze wszystkich testów</StatHelpText>
                         </Stat>
                     </Box>
 
                     <Box p={6} bg={bgColor} borderRadius="lg" borderWidth="1px" borderColor={borderColor}>
                         <Stat>
-                            <StatLabel>Dzisiejsza aktywność</StatLabel>
+                            <HStack spacing={2}>
+                                <Icon as={FaClock} color="blue.500" />
+                                <StatLabel>Czas nauki</StatLabel>
+                            </HStack>
+                            <StatNumber>{Math.round(stats.totalTime / 60)} min</StatNumber>
+                            <StatHelpText>{stats.totalTime} sekund łącznie</StatHelpText>
+                        </Stat>
+                    </Box>
+
+                    <Box p={6} bg={bgColor} borderRadius="lg" borderWidth="1px" borderColor={borderColor}>
+                        <Stat>
+                            <HStack spacing={2}>
+                                <Icon as={FaCalendarCheck} color="green.500" />
+                                <StatLabel>Dzisiejsza aktywność</StatLabel>
+                            </HStack>
                             <StatNumber>
                                 {loadFromLocalStorage<number>('todayLessons', 0)}
                             </StatNumber>
-                            <StatHelpText>Ukończonych lekcji</StatHelpText>
+                            <StatHelpText>ukończonych lekcji</StatHelpText>
                         </Stat>
                     </Box>
                 </SimpleGrid>
@@ -84,7 +108,7 @@ const Home = () => {
                                     </Tr>
                                 </Thead>
                                 <Tbody>
-                                    {testResults.slice(0, 5).map((result, index) => (
+                                    {testResults.slice(0, 3).map((result, index) => (
                                         <Tr key={index}>
                                             <Td>{result.lessonTitle}</Td>
                                             <Td isNumeric>
