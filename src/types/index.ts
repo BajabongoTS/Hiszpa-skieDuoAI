@@ -7,10 +7,13 @@ export interface Question {
     correctAnswer: string;
     explanation?: string;
     matchingPairs?: Array<{ spanish: string; polish: string }>;
+<<<<<<< HEAD
     displayOrder?: {
         spanish: string[];
         polish: string[];
     };
+=======
+>>>>>>> parent of 8f63d10 (naprawienie błędu)
     flashcardData?: { spanish: string; polish: string };
 }
 
@@ -21,9 +24,12 @@ export interface Lesson {
     progress: number;
     questions: Question[];
     vocabulary: Array<{ spanish: string; polish: string }>;
+<<<<<<< HEAD
     lastCompleted?: Date;
     bestScore?: number;
     lastAttemptDate?: Date | null;
+=======
+>>>>>>> parent of 8f63d10 (naprawienie błędu)
 }
 
 export interface TestResult {

@@ -34,6 +34,10 @@ import TestStats from './TestStats';
 import type { TestResult } from './TestStats';
 import { parseVocabulary, createQuestionsFromVocab } from '../utils/vocabulary';
 import { bodyPartsVocab, foodVocab, excursionVocab } from '../data/vocabulary';
+<<<<<<< HEAD
+=======
+import { setCookie, getCookie } from '../utils/cookies';
+>>>>>>> parent of 8f63d10 (naprawienie błędu)
 
 const MotionBox = motion(Box);
 
@@ -50,6 +54,7 @@ const normalizeSpanishText = (text: string): string => {
         .trim();
 };
 
+<<<<<<< HEAD
 interface IncorrectPairs {
     spanish: string;
     polish: string;
@@ -59,8 +64,65 @@ interface IncorrectPairs {
 lessonsData.forEach(lesson => {
     lesson.questions = createQuestionsFromVocab(lesson.vocabulary);
 });
+=======
+type QuestionType = 'multiple-choice' | 'text-input' | 'matching' | 'flashcard';
+
+interface Question {
+    type: QuestionType;
+    question: string;
+    options?: string[];
+    correctAnswer: string;
+    explanation?: string;
+    matchingPairs?: Array<{ spanish: string; polish: string }>;
+    flashcardData?: { spanish: string; polish: string };
+}
+
+interface Lesson {
+    id: number;
+    title: string;
+    description: string;
+    progress: number;
+    questions: Question[];
+    vocabulary: Array<{ spanish: string; polish: string }>;
+    lastCompleted?: Date;
+    bestScore?: number;
+}
+
+const lessonsData: Lesson[] = [
+    {
+        id: 1,
+        title: "Części ciała",
+        description: "Naucz się nazw części ciała po hiszpańsku",
+        progress: 0,
+        vocabulary: parseVocabulary(bodyPartsVocab),
+        questions: []
+    },
+    {
+        id: 2,
+        title: "Jedzenie",
+        description: "Poznaj słownictwo związane z jedzeniem",
+        progress: 0,
+        vocabulary: parseVocabulary(foodVocab),
+        questions: []
+    },
+    {
+        id: 3,
+        title: "Wycieczka",
+        description: "Słownictwo przydatne podczas wycieczek",
+        progress: 0,
+        vocabulary: parseVocabulary(excursionVocab),
+        questions: []
+    }
+];
+>>>>>>> parent of 8f63d10 (naprawienie błędu)
+
+// Generate questions for each lesson
+lessonsData.forEach(lesson => {
+    lesson.questions = createQuestionsFromVocab(lesson.vocabulary);
+});
 
 const Lessons = () => {
+    // Initialize state from cookies or default values
     const [lessons, setLessons] = useState<Lesson[]>(() => {
         // Try to get saved lessons from cookies
         const savedLessons = getCookie('lessonsProgress');
@@ -108,6 +170,7 @@ const Lessons = () => {
         }
     }, [lessons]);
 
+<<<<<<< HEAD
     // Load saved lesson state when component mounts
     useEffect(() => {
         const savedCurrentLesson = getCookie('currentLesson');
@@ -121,6 +184,8 @@ const Lessons = () => {
         }
     }, []);
 
+=======
+>>>>>>> parent of 8f63d10 (naprawienie błędu)
     // Save last test result to cookies whenever it changes
     useEffect(() => {
         if (lastTestResult) {
@@ -144,7 +209,45 @@ const Lessons = () => {
         }
     }, [timeLeft]);
 
+<<<<<<< HEAD
     // Handle extending time
+=======
+    useEffect(() => {
+        saveToLocalStorage('lessons', lessons);
+    }, [lessons]);
+
+    useEffect(() => {
+        saveToLocalStorage('currentLesson', currentLesson);
+    }, [currentLesson]);
+
+    useEffect(() => {
+        saveToLocalStorage('currentQuestionIndex', currentQuestionIndex);
+    }, [currentQuestionIndex]);
+
+    useEffect(() => {
+        saveToLocalStorage('questionsToRepeat', Array.from(questionsToRepeat));
+    }, [questionsToRepeat]);
+
+    useEffect(() => {
+        saveToLocalStorage('isInRepeatMode', isInRepeatMode);
+    }, [isInRepeatMode]);
+
+    useEffect(() => {
+        saveToLocalStorage('incorrectAttempts', incorrectAttempts);
+    }, [incorrectAttempts]);
+
+    useEffect(() => {
+        return () => {
+            saveToLocalStorage('lessons', lessons);
+            saveToLocalStorage('currentLesson', currentLesson);
+            saveToLocalStorage('currentQuestionIndex', currentQuestionIndex);
+            saveToLocalStorage('questionsToRepeat', Array.from(questionsToRepeat));
+            saveToLocalStorage('isInRepeatMode', isInRepeatMode);
+            saveToLocalStorage('incorrectAttempts', incorrectAttempts);
+        };
+    }, [lessons, currentLesson, currentQuestionIndex, questionsToRepeat, isInRepeatMode, incorrectAttempts]);
+
+>>>>>>> parent of 8f63d10 (naprawienie błędu)
     const handleExtendTime = () => {
         if (canExtendTime) {
             setTimeLeft(prev => prev + 15);
