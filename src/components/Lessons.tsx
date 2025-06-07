@@ -54,15 +54,19 @@ interface IncorrectPairs {
 
 const Lessons = () => {
     const [lessons, setLessons] = useState<Lesson[]>(() => {
-        const savedLessons = getCookie('lessons');
-        // If we have saved lessons, use them, otherwise initialize with default data
+        // Try to get saved lessons from cookies
+        const savedLessons = getCookie('lessonsProgress');
         if (savedLessons) {
-            return savedLessons.map((savedLesson: Lesson) => ({
-                ...savedLesson,
-                // Convert date strings back to Date objects
-                lastCompleted: savedLesson.lastCompleted ? new Date(savedLesson.lastCompleted) : undefined,
-                lastAttemptDate: savedLesson.lastAttemptDate ? new Date(savedLesson.lastAttemptDate) : null
-            }));
+            // Merge saved progress with current lesson data
+            return lessonsData.map(lesson => {
+                const savedLesson = savedLessons.find((sl: Lesson) => sl.id === lesson.id);
+                return {
+                    ...lesson,
+                    progress: savedLesson?.progress || 0,
+                    bestScore: savedLesson?.bestScore || 0,
+                    lastCompleted: savedLesson?.lastCompleted ? new Date(savedLesson.lastCompleted) : undefined
+                };
+            });
         }
         return lessonsData;
     });
