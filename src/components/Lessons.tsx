@@ -399,7 +399,8 @@ const Lessons = () => {
     const renderQuestion = (question: Question) => {
         if (!question) return null;
 
-        const buttonColorScheme = useColorModeValue('teal', 'cyan');
+        const accentColor = 'teal.500';
+        const buttonColorScheme = 'teal';
 
         return (
             <VStack spacing={6} align="stretch" w="100%" maxW="800px" mx="auto">
@@ -412,22 +413,17 @@ const Lessons = () => {
                     borderColor={useColorModeValue('gray.200', 'gray.600')}
                 >
                     <HStack justify="space-between" mb={4}>
-                        <Text fontSize="2xl" fontWeight="bold">{question.question}</Text>
+                        <Text fontSize="2xl" fontWeight="bold" color={accentColor}>{question.question}</Text>
                         <Button
                             leftIcon={<FaQuestion />}
                             onClick={handleDontKnow}
-                            variant="ghost"
                             colorScheme={buttonColorScheme}
+                            size="md"
                             isDisabled={isAnsweredCorrectly || showExplanation}
                         >
-                            Nie wiem
+                            Nie wiem ({questionsToRepeat.length})
                         </Button>
                     </HStack>
-                    {showExplanation && question.explanation && (
-                        <Text color={useColorModeValue('gray.600', 'gray.300')} fontSize="lg">
-                            {question.explanation}
-                        </Text>
-                    )}
                 </Box>
 
                 {question.type === 'multiple-choice' && question.options && (
@@ -475,8 +471,8 @@ const Lessons = () => {
                                 textAlign="center"
                                 isDisabled={isAnsweredCorrectly || showExplanation}
                                 _focus={{
-                                    borderColor: `${buttonColorScheme}.400`,
-                                    boxShadow: `0 0 0 1px var(--chakra-colors-${buttonColorScheme}-400)`
+                                    borderColor: `${accentColor}`,
+                                    boxShadow: `0 0 0 1px var(--chakra-colors-${buttonColorScheme}-500)`
                                 }}
                                 autoFocus
                             />
@@ -508,7 +504,7 @@ const Lessons = () => {
                     >
                         <Grid templateColumns="1fr 1fr" gap={8}>
                             <VStack spacing={4} align="stretch">
-                                <Text fontSize="lg" fontWeight="bold" textAlign="center" mb={2}>
+                                <Text fontSize="lg" fontWeight="bold" textAlign="center" mb={2} color={accentColor}>
                                     Hiszpański
                                 </Text>
                                 {question.matchingPairs?.map((pair, index) => (
@@ -536,7 +532,7 @@ const Lessons = () => {
                                 ))}
                             </VStack>
                             <VStack spacing={4} align="stretch">
-                                <Text fontSize="lg" fontWeight="bold" textAlign="center" mb={2}>
+                                <Text fontSize="lg" fontWeight="bold" textAlign="center" mb={2} color={accentColor}>
                                     Polski
                                 </Text>
                                 {question.matchingPairs?.map((pair, index) => (
@@ -601,10 +597,11 @@ const Lessons = () => {
 
                 {isInRepeatMode && (
                     <Text
-                        color={useColorModeValue('gray.600', 'gray.400')}
+                        color={accentColor}
                         fontSize="md"
                         textAlign="center"
                         mt={4}
+                        fontWeight="bold"
                     >
                         Tryb powtórki: {currentQuestionIndex + 1}/{questionsToRepeat.length}
                     </Text>
