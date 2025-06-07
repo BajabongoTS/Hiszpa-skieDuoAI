@@ -1,11 +1,11 @@
 import { Box, Grid, VStack, Heading, Text, Progress, Button, useToast, ScaleFade, Input, HStack, Tooltip, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, useDisclosure, IconButton, CircularProgress, CircularProgressLabel } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { FaCheck, FaChartBar, FaClock } from 'react-icons/fa';
+import { FaCheck, FaChartBar, FaClock, FaArrowLeft } from 'react-icons/fa';
 import TestStats from './TestStats';
 import type { TestResult } from './TestStats';
 import { parseVocabulary, createQuestionsFromVocab } from '../utils/vocabulary';
-import { bodyPartsVocab, foodVocab, excursionVocab, aWordsVocab, aPeopleVocab, numbersVocab } from '../data/vocabulary';
+import { bodyPartsVocab, foodVocab, excursionVocab } from '../data/vocabulary';
 import { saveToLocalStorage, loadFromLocalStorage } from '../utils/localStorage';
 
 const MotionBox = motion(Box);
@@ -67,30 +67,6 @@ const lessonsData: Lesson[] = [
         description: "Słownictwo przydatne podczas wycieczek",
         progress: 0,
         vocabulary: parseVocabulary(excursionVocab),
-        questions: []
-    },
-    {
-        id: 4,
-        title: "Liczby 11-20",
-        description: "Podstawowe liczby w języku hiszpańskim",
-        progress: 0,
-        vocabulary: parseVocabulary(numbersVocab),
-        questions: []
-    },
-    {
-        id: 5,
-        title: "Słowa na 'A'",
-        description: "Poznaj popularne hiszpańskie słowa zaczynające się na 'a'",
-        progress: 0,
-        vocabulary: parseVocabulary(aWordsVocab),
-        questions: []
-    },
-    {
-        id: 6,
-        title: "Zawody i osoby na 'A'",
-        description: "Naucz się nazw zawodów i osób zaczynających się na 'a'",
-        progress: 0,
-        vocabulary: parseVocabulary(aPeopleVocab),
         questions: []
     }
 ];
@@ -649,18 +625,16 @@ const Lessons = () => {
                     <HStack justify="space-between" align="center" position="relative">
                         <IconButton
                             aria-label="Return to tests"
-                            icon={<FaClock />}
+                            icon={<FaArrowLeft />}
                             onClick={() => {
                                 const shouldExit = window.confirm('Czy na pewno chcesz wrócić do listy testów? Twój postęp zostanie zapisany.');
                                 if (shouldExit) {
                                     setCurrentLesson(null);
                                 }
                             }}
-                            position="absolute"
-                            left={0}
-                            colorScheme="teal"
+                            size="sm"
                             variant="ghost"
-                            size="md"
+                            mr={2}
                         />
                         <Heading size="lg" mx="auto">
                             {currentLesson.title}
