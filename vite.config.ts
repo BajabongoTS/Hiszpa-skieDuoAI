@@ -10,6 +10,7 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: true,
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html')
@@ -20,19 +21,12 @@ export default defineConfig({
           'chakra-vendor': ['@chakra-ui/react', '@emotion/react', '@emotion/styled', 'framer-motion']
         }
       }
-    },
-    commonjsOptions: {
-      include: [/node_modules/],
-      extensions: ['.js', '.cjs', '.ts', '.tsx']
     }
   },
   resolve: {
     alias: {
       '@': resolve(__dirname, './src')
     }
-  },
-  optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', '@chakra-ui/react']
   },
   server: {
     port: 3000,
