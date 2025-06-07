@@ -8,6 +8,7 @@ export const lessonsData: Lesson[] = [
         title: "Części ciała",
         description: "Naucz się nazw części ciała po hiszpańsku",
         progress: 0,
+        vocabulary: parseVocabulary(bodyPartsVocab),
         questions: [
             {
                 type: 'multiple-choice',
@@ -41,6 +42,7 @@ export const lessonsData: Lesson[] = [
         title: "Jedzenie",
         description: "Poznaj słownictwo związane z jedzeniem",
         progress: 0,
+        vocabulary: parseVocabulary(foodVocab),
         questions: [
             {
                 type: 'multiple-choice',
@@ -74,6 +76,7 @@ export const lessonsData: Lesson[] = [
         title: "Wycieczka",
         description: "Słownictwo przydatne podczas wycieczek",
         progress: 0,
+        vocabulary: parseVocabulary(excursionVocab),
         questions: [
             {
                 type: 'multiple-choice',
@@ -107,6 +110,7 @@ export const lessonsData: Lesson[] = [
         title: "Liczby 11-20",
         description: "Naucz się liczb od 11 do 20 po hiszpańsku",
         progress: 0,
+        vocabulary: parseVocabulary(numbersVocab),
         questions: [
             {
                 type: 'multiple-choice',

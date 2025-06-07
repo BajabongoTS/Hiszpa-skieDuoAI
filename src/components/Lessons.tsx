@@ -7,7 +7,6 @@ import {
     useToast,
     HStack,
     useDisclosure,
-    SimpleGrid,
     Input,
     IconButton,
     Heading,
@@ -25,19 +24,13 @@ import {
     Grid,
     ScaleFade
 } from '@chakra-ui/react';
-import { FaArrowLeft, FaChartBar, FaCheck, FaRedo, FaClock } from 'react-icons/fa';
+import { FaArrowLeft, FaClock } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { setCookie, getCookie, removeCookie } from '../utils/cookies';
-import type { Question, Lesson } from '../types';
-import { lessonsData } from '../data/lessonsData';
-import TestStats from './TestStats';
-import type { TestResult } from './TestStats';
+import type { Question, Lesson, TestResult } from '../types';
 import { parseVocabulary, createQuestionsFromVocab } from '../utils/vocabulary';
 import { bodyPartsVocab, foodVocab, excursionVocab } from '../data/vocabulary';
-<<<<<<< HEAD
-=======
-import { setCookie, getCookie } from '../utils/cookies';
->>>>>>> parent of 8f63d10 (naprawienie błędu)
+import TestStats from './TestStats';
 
 const MotionBox = motion(Box);
 
@@ -54,38 +47,9 @@ const normalizeSpanishText = (text: string): string => {
         .trim();
 };
 
-<<<<<<< HEAD
 interface IncorrectPairs {
     spanish: string;
     polish: string;
-}
-
-// Generate questions for each lesson
-lessonsData.forEach(lesson => {
-    lesson.questions = createQuestionsFromVocab(lesson.vocabulary);
-});
-=======
-type QuestionType = 'multiple-choice' | 'text-input' | 'matching' | 'flashcard';
-
-interface Question {
-    type: QuestionType;
-    question: string;
-    options?: string[];
-    correctAnswer: string;
-    explanation?: string;
-    matchingPairs?: Array<{ spanish: string; polish: string }>;
-    flashcardData?: { spanish: string; polish: string };
-}
-
-interface Lesson {
-    id: number;
-    title: string;
-    description: string;
-    progress: number;
-    questions: Question[];
-    vocabulary: Array<{ spanish: string; polish: string }>;
-    lastCompleted?: Date;
-    bestScore?: number;
 }
 
 const lessonsData: Lesson[] = [
@@ -114,7 +78,6 @@ const lessonsData: Lesson[] = [
         questions: []
     }
 ];
->>>>>>> parent of 8f63d10 (naprawienie błędu)
 
 // Generate questions for each lesson
 lessonsData.forEach(lesson => {
@@ -122,7 +85,6 @@ lessonsData.forEach(lesson => {
 });
 
 const Lessons = () => {
-    // Initialize state from cookies or default values
     const [lessons, setLessons] = useState<Lesson[]>(() => {
         // Try to get saved lessons from cookies
         const savedLessons = getCookie('lessonsProgress');
@@ -170,7 +132,6 @@ const Lessons = () => {
         }
     }, [lessons]);
 
-<<<<<<< HEAD
     // Load saved lesson state when component mounts
     useEffect(() => {
         const savedCurrentLesson = getCookie('currentLesson');
@@ -184,8 +145,6 @@ const Lessons = () => {
         }
     }, []);
 
-=======
->>>>>>> parent of 8f63d10 (naprawienie błędu)
     // Save last test result to cookies whenever it changes
     useEffect(() => {
         if (lastTestResult) {
@@ -209,45 +168,7 @@ const Lessons = () => {
         }
     }, [timeLeft]);
 
-<<<<<<< HEAD
     // Handle extending time
-=======
-    useEffect(() => {
-        saveToLocalStorage('lessons', lessons);
-    }, [lessons]);
-
-    useEffect(() => {
-        saveToLocalStorage('currentLesson', currentLesson);
-    }, [currentLesson]);
-
-    useEffect(() => {
-        saveToLocalStorage('currentQuestionIndex', currentQuestionIndex);
-    }, [currentQuestionIndex]);
-
-    useEffect(() => {
-        saveToLocalStorage('questionsToRepeat', Array.from(questionsToRepeat));
-    }, [questionsToRepeat]);
-
-    useEffect(() => {
-        saveToLocalStorage('isInRepeatMode', isInRepeatMode);
-    }, [isInRepeatMode]);
-
-    useEffect(() => {
-        saveToLocalStorage('incorrectAttempts', incorrectAttempts);
-    }, [incorrectAttempts]);
-
-    useEffect(() => {
-        return () => {
-            saveToLocalStorage('lessons', lessons);
-            saveToLocalStorage('currentLesson', currentLesson);
-            saveToLocalStorage('currentQuestionIndex', currentQuestionIndex);
-            saveToLocalStorage('questionsToRepeat', Array.from(questionsToRepeat));
-            saveToLocalStorage('isInRepeatMode', isInRepeatMode);
-            saveToLocalStorage('incorrectAttempts', incorrectAttempts);
-        };
-    }, [lessons, currentLesson, currentQuestionIndex, questionsToRepeat, isInRepeatMode, incorrectAttempts]);
-
->>>>>>> parent of 8f63d10 (naprawienie błędu)
     const handleExtendTime = () => {
         if (canExtendTime) {
             setTimeLeft(prev => prev + 15);
@@ -326,26 +247,36 @@ const Lessons = () => {
             
             // Show results
             const testResult: TestResult = {
+                lessonId: currentLesson.id,
                 lessonTitle: currentLesson.title,
+                score,
                 totalQuestions,
                 correctAnswers: totalQuestions - Object.keys(incorrectAttempts).length,
                 incorrectAttempts,
-                timeSpent: testDuration,
-                completedAt: new Date()
+                timeSpent: Math.round(testDuration),
+                completedAt: new Date(),
+                incorrectAnswers: Object.entries(incorrectAttempts).map(([question, attempts]) => ({
+                    question,
+                    userAnswer: `Incorrect attempts: ${attempts}`,
+                    correctAnswer: currentLesson.questions.find(q => q.question === question)?.correctAnswer || ''
+                }))
             };
             setLastTestResult(testResult);
-            setCookie('lastTestResult', testResult);
-            onOpen();
             
-            // Clear current lesson state
-            removeCookie('currentLesson');
-            removeCookie('currentQuestionIndex');
-            removeCookie('incorrectAttempts');
+            // Update today's lessons count
+            const today = new Date().toDateString();
+            const todayKey = `todayLessons_${today}`;
+            const todayLessons = getCookie(todayKey) || 0;
+            setCookie(todayKey, todayLessons + 1);
             
             // Reset state
             setCurrentLesson(null);
             setCurrentQuestionIndex(0);
+            setTestStartTime(null);
             resetQuestion();
+            
+            // Show results modal
+            onOpen();
         }
     };
 
@@ -359,22 +290,11 @@ const Lessons = () => {
 
     const handleDontKnow = () => {
         if (!currentLesson) return;
-        const currentQuestion = currentLesson.questions[currentQuestionIndex];
         
-        toast({
-            title: "Nie szkodzi!",
-            description: `Prawidłowa odpowiedź to: ${
-                currentQuestion.type === 'matching' 
-                    ? 'Sprawdź poniższe pary'
-                    : currentQuestion.correctAnswer
-            }. To pytanie pojawi się ponownie na końcu testu.`,
-            status: "info",
-            duration: 3000,
-            isClosable: true,
-        });
-
+        const currentQuestion = currentLesson.questions[currentQuestionIndex];
+        handleIncorrectAnswer(currentQuestion.question);
         setShowExplanation(true);
-        setIsAnsweredCorrectly(true);
+        setIsAnsweredCorrectly(false);
     };
 
     const handleIncorrectAnswer = (question: string) => {
@@ -386,202 +306,197 @@ const Lessons = () => {
 
     const handleAnswer = (answer: string) => {
         if (!currentLesson) return;
+
         const currentQuestion = currentLesson.questions[currentQuestionIndex];
-        let isCorrect = false;
+        const normalizedAnswer = normalizeSpanishText(answer);
+        const normalizedCorrect = normalizeSpanishText(currentQuestion.correctAnswer);
 
-        switch (currentQuestion.type) {
-            case 'multiple-choice':
-                isCorrect = currentQuestion.correctAnswer === answer;
-                break;
-            case 'text-input':
-                isCorrect = normalizeSpanishText(currentQuestion.correctAnswer) === normalizeSpanishText(answer);
-                break;
-            case 'matching':
-                isCorrect = Object.keys(matchedPairs).length === currentQuestion.matchingPairs!.length &&
-                    currentQuestion.matchingPairs!.every(pair => 
-                        matchedPairs[pair.spanish] === pair.polish
-                    );
-                break;
-        }
-
-        if (!isCorrect) {
-            handleIncorrectAnswer(currentQuestion.question);
+        if (normalizedAnswer === normalizedCorrect) {
+            setIsAnsweredCorrectly(true);
             toast({
-                title: "Niepoprawna odpowiedź",
+                title: "¡Correcto!",
+                description: "Świetna robota!",
+                status: "success",
+                duration: 2000,
+                isClosable: true
+            });
+            setTimeout(() => {
+                handleNextQuestion();
+            }, 1000);
+        } else {
+            handleIncorrectAnswer(currentQuestion.question);
+            setIncorrectPairs({
+                spanish: answer,
+                polish: currentQuestion.correctAnswer
+            });
+            toast({
+                title: "¡Incorrecto!",
                 description: "Spróbuj jeszcze raz!",
                 status: "error",
                 duration: 2000,
-                isClosable: true,
+                isClosable: true
             });
-            return;
         }
-
-        setIsAnsweredCorrectly(true);
-        toast({
-            title: "Poprawna odpowiedź!",
-            description: "Świetnie! Tak trzymaj!",
-            status: "success",
-            duration: 2000,
-            isClosable: true,
-        });
-
-        setShowExplanation(true);
     };
 
     const handleMatchingClick = (word: string, isSpanish: boolean) => {
-        if (!currentLesson || isAnsweredCorrectly) return;
-        
+        if (!currentLesson) return;
+
+        const currentQuestion = currentLesson.questions[currentQuestionIndex];
+        if (currentQuestion.type !== 'matching') return;
+
         if (isSpanish) {
             setSelectedSpanish(word);
-            setIncorrectPairs(null);
         } else if (selectedSpanish) {
-            const currentQuestion = currentLesson?.questions[currentQuestionIndex];
-            const isCorrectMatch = currentQuestion?.matchingPairs?.some(
-                pair => pair.spanish === selectedSpanish && pair.polish === word
+            // Find the correct pair
+            const correctPair = currentQuestion.matchingPairs?.find(pair => 
+                pair.spanish === selectedSpanish && pair.polish === word
             );
 
-            if (isCorrectMatch) {
-                const newPairs = { ...matchedPairs, [selectedSpanish]: word };
-                setMatchedPairs(newPairs);
-                setSelectedSpanish(null);
-                setIncorrectPairs(null);
+            if (correctPair) {
+                setMatchedPairs(prev => ({
+                    ...prev,
+                    [selectedSpanish]: word
+                }));
 
-                // Check if all pairs are matched correctly
-                if (currentQuestion?.matchingPairs && 
-                    Object.keys(newPairs).length === currentQuestion.matchingPairs.length) {
+                // Check if all pairs are matched
+                const newMatchedPairs = { ...matchedPairs, [selectedSpanish]: word };
+                if (currentQuestion.matchingPairs && 
+                    Object.keys(newMatchedPairs).length === currentQuestion.matchingPairs.length) {
                     setIsAnsweredCorrectly(true);
-                    setShowExplanation(true);
+                    setTimeout(() => {
+                        handleNextQuestion();
+                    }, 1000);
                 }
             } else {
-                setIncorrectPairs({ spanish: selectedSpanish, polish: word });
-                setTimeout(() => {
-                    setIncorrectPairs(null);
-                    setSelectedSpanish(null);
-                }, 1000);
+                handleIncorrectAnswer(currentQuestion.question);
             }
+            setSelectedSpanish(null);
         }
     };
 
-    // Update the matching UI rendering
     const renderMatchingQuestion = (question: Question) => {
         if (!question.matchingPairs) return null;
 
-        // Use displayOrder if available, otherwise use the original pairs
-        const spanishWords = question.displayOrder?.spanish || question.matchingPairs.map(pair => pair.spanish);
-        const polishWords = question.displayOrder?.polish || question.matchingPairs.map(pair => pair.polish);
+        const spanishWords = question.matchingPairs.map(pair => pair.spanish);
+        const polishWords = question.matchingPairs.map(pair => pair.polish);
 
         return (
-            <VStack spacing={4} w="100%">
-                <SimpleGrid columns={2} spacing={4} w="100%">
-                    <VStack spacing={4} align="stretch">
-                        {spanishWords.map((word, index) => (
-                            <Button
-                                key={`spanish-${index}`}
-                                onClick={() => handleMatchingClick(word, true)}
-                                colorScheme={selectedSpanish === word ? 'blue' : 
-                                           matchedPairs[word] ? 'green' : 
-                                           incorrectPairs?.spanish === word ? 'red' : 'gray'}
-                                variant={selectedSpanish === word ? 'solid' : 'outline'}
-                                isDisabled={!!matchedPairs[word] || isAnsweredCorrectly}
-                            >
-                                {word}
-                            </Button>
-                        ))}
-                    </VStack>
-                    <VStack spacing={4} align="stretch">
-                        {polishWords.map((word, index) => (
-                            <Button
-                                key={`polish-${index}`}
-                                onClick={() => handleMatchingClick(word, false)}
-                                colorScheme={Object.values(matchedPairs).includes(word) ? 'green' : 
-                                           incorrectPairs?.polish === word ? 'red' : 'gray'}
-                                variant="outline"
-                                isDisabled={Object.values(matchedPairs).includes(word) || isAnsweredCorrectly}
-                            >
-                                {word}
-                            </Button>
-                        ))}
-                    </VStack>
-                </SimpleGrid>
-                <Button
-                    onClick={handleDontKnow}
-                    variant="ghost"
-                    colorScheme="gray"
-                    size="md"
-                    mt={4}
-                    isDisabled={isAnsweredCorrectly}
-                >
-                    Nie wiem
-                </Button>
-            </VStack>
+            <Grid templateColumns="1fr 1fr" gap={4}>
+                <VStack spacing={4}>
+                    {spanishWords.map(word => (
+                        <Button
+                            key={word}
+                            onClick={() => handleMatchingClick(word, true)}
+                            colorScheme={selectedSpanish === word ? 'blue' : 'gray'}
+                            isDisabled={word in matchedPairs}
+                            w="100%"
+                        >
+                            {word}
+                        </Button>
+                    ))}
+                </VStack>
+                <VStack spacing={4}>
+                    {polishWords.map(word => (
+                        <Button
+                            key={word}
+                            onClick={() => handleMatchingClick(word, false)}
+                            colorScheme="gray"
+                            isDisabled={Object.values(matchedPairs).includes(word)}
+                            w="100%"
+                        >
+                            {word}
+                        </Button>
+                    ))}
+                </VStack>
+            </Grid>
         );
     };
 
     const renderQuestion = (question: Question) => {
-        switch (question.type) {
-            case 'multiple-choice':
-                return (
-                    <VStack spacing={4} w="100%">
-                        <Grid templateColumns="repeat(2, 1fr)" gap={4} w="100%">
-                            {question.options!.map((option, index) => (
-                                <Button
-                                    key={index}
-                                    size="lg"
-                                    variant="outline"
-                                    onClick={() => handleAnswer(option)}
-                                    _hover={{ transform: 'scale(1.02)' }}
-                                    transition="all 0.2s"
-                                    isDisabled={isAnsweredCorrectly}
-                                >
-                                    {option}
-                                </Button>
-                            ))}
-                        </Grid>
-                        <Button
-                            onClick={handleDontKnow}
-                            variant="ghost"
-                            colorScheme="gray"
-                            size="md"
-                            mt={4}
-                            isDisabled={isAnsweredCorrectly}
-                        >
-                            Nie wiem
-                        </Button>
+        if (!question) return null;
+
+        return (
+            <VStack spacing={4} align="stretch">
+                <Box>
+                    <Text fontSize="xl" mb={2}>{question.question}</Text>
+                    {showExplanation && question.explanation && (
+                        <Text color="gray.500">{question.explanation}</Text>
+                    )}
+                </Box>
+
+                {question.type === 'multiple-choice' && question.options && (
+                    <VStack spacing={3} align="stretch">
+                        {question.options.map((option, index) => (
+                            <Button
+                                key={index}
+                                onClick={() => handleAnswer(option)}
+                                colorScheme="blue"
+                                variant="outline"
+                                isDisabled={isAnsweredCorrectly || showExplanation}
+                            >
+                                {option}
+                            </Button>
+                        ))}
                     </VStack>
-                );
-            case 'text-input':
-                return (
-                    <VStack spacing={4} w="100%">
+                )}
+
+                {question.type === 'text-input' && (
+                    <VStack spacing={3}>
                         <Input
-                            placeholder="Wpisz odpowiedź..."
                             value={textInput}
                             onChange={(e) => setTextInput(e.target.value)}
-                            size="lg"
-                            isDisabled={isAnsweredCorrectly}
+                            placeholder="Wpisz odpowiedź..."
+                            isDisabled={isAnsweredCorrectly || showExplanation}
                         />
                         <Button
                             onClick={() => handleAnswer(textInput)}
-                            isDisabled={!textInput.trim() || isAnsweredCorrectly}
-                            w="100%"
+                            colorScheme="blue"
+                            isDisabled={!textInput || isAnsweredCorrectly || showExplanation}
                         >
                             Sprawdź
                         </Button>
-                        <Button
-                            onClick={handleDontKnow}
-                            variant="ghost"
-                            colorScheme="gray"
-                            size="md"
-                            isDisabled={isAnsweredCorrectly}
-                        >
-                            Nie wiem
-                        </Button>
                     </VStack>
-                );
-            case 'matching':
-                return renderMatchingQuestion(question);
-            default:
-                return null;
-        }
+                )}
+
+                {question.type === 'matching' && renderMatchingQuestion(question)}
+
+                {question.type === 'flashcard' && question.flashcardData && (
+                    <VStack spacing={4}>
+                        <Box
+                            p={6}
+                            bg="white"
+                            borderRadius="lg"
+                            boxShadow="md"
+                            textAlign="center"
+                        >
+                            <Text fontSize="2xl">{question.flashcardData.spanish}</Text>
+                            {showExplanation && (
+                                <Text mt={4} color="gray.600">
+                                    {question.flashcardData.polish}
+                                </Text>
+                            )}
+                        </Box>
+                        {!showExplanation && (
+                            <Button onClick={() => setShowExplanation(true)}>
+                                Pokaż tłumaczenie
+                            </Button>
+                        )}
+                    </VStack>
+                )}
+
+                {incorrectPairs && (
+                    <Box mt={4} p={4} bg="red.50" borderRadius="md">
+                        <Text color="red.600">
+                            Twoja odpowiedź: {incorrectPairs.spanish}
+                        </Text>
+                        <Text color="green.600">
+                            Poprawna odpowiedź: {incorrectPairs.polish}
+                        </Text>
+                    </Box>
+                )}
+            </VStack>
+        );
     };
 
     if (currentLesson) {
@@ -681,7 +596,7 @@ const Lessons = () => {
                 <Heading>Dostępne Lekcje</Heading>
                 {lastTestResult && (
                     <Button
-                        leftIcon={<FaChartBar />}
+                        leftIcon={<FaClock />}
                         onClick={onOpen}
                         colorScheme="teal"
                         variant="outline"
@@ -715,14 +630,14 @@ const Lessons = () => {
                                 <Button
                                     colorScheme="teal"
                                     onClick={() => startLesson(lesson)}
-                                    leftIcon={lesson.progress === 100 ? <FaRedo /> : undefined}
+                                    leftIcon={lesson.progress === 100 ? <FaClock /> : undefined}
                                 >
                                     {lesson.progress === 100 ? 'Powtórz' : 'Rozpocznij'}
                                 </Button>
                                 {lesson.bestScore !== undefined && lesson.bestScore > 0 && (
                                     <Tooltip label={`Najlepszy wynik: ${lesson.bestScore}%`} placement="top">
                                         <HStack spacing={2} justify="center">
-                                            <Icon as={FaCheck} boxSize={5} />
+                                            <Icon as={FaClock} boxSize={5} />
                                             <Text>{lesson.bestScore}%</Text>
                                         </HStack>
                                     </Tooltip>

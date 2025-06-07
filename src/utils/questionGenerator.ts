@@ -124,10 +124,7 @@ export const createQuestionsFromVocab = (vocabulary: VocabularyPair[]): Question
                 type: 'matching',
                 question: 'Dopasuj słowa do ich znaczeń',
                 matchingPairs: pairs,
-                displayOrder: {
-                    spanish: shuffledSpanish,
-                    polish: shuffledPolish
-                },
+                displayOrder: Math.random(), // Random number between 0 and 1 for display order
                 correctAnswer: 'all-matched'
             });
         }
