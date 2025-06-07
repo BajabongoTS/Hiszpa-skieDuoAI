@@ -1,6 +1,6 @@
 [build]
-  command = "npm run build"
-  publish = "dist"
+  command = "cd hiszpanskiDuoAI && npm install --legacy-peer-deps && npm run build"
+  publish = "hiszpanskiDuoAI/dist"
   functions = "netlify/functions"
 
 [[redirects]]
