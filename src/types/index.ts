@@ -1,4 +1,4 @@
-export type QuestionType = 'multiple-choice' | 'text-input' | 'matching';
+export type QuestionType = 'multiple-choice' | 'text-input' | 'matching' | 'flashcard';
 
 export interface Question {
     type: QuestionType;
@@ -11,6 +11,7 @@ export interface Question {
         spanish: string[];
         polish: string[];
     };
+    flashcardData?: { spanish: string; polish: string };
 }
 
 export interface Lesson {
@@ -19,6 +20,7 @@ export interface Lesson {
     description: string;
     progress: number;
     questions: Question[];
+    vocabulary: Array<{ spanish: string; polish: string }>;
     lastCompleted?: Date;
     bestScore?: number;
     lastAttemptDate?: Date | null;

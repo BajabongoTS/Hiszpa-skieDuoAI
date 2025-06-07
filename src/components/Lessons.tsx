@@ -31,6 +31,9 @@ import { setCookie, getCookie, removeCookie } from '../utils/cookies';
 import type { Question, Lesson } from '../types';
 import { lessonsData } from '../data/lessonsData';
 import TestStats from './TestStats';
+import type { TestResult } from './TestStats';
+import { parseVocabulary, createQuestionsFromVocab } from '../utils/vocabulary';
+import { bodyPartsVocab, foodVocab, excursionVocab } from '../data/vocabulary';
 
 const MotionBox = motion(Box);
 
@@ -82,7 +85,7 @@ const Lessons = () => {
     const [incorrectAttempts, setIncorrectAttempts] = useState<Record<string, number>>({});
     const [testStartTime, setTestStartTime] = useState<Date | null>(null);
     const [timeLeft, setTimeLeft] = useState(30);
-    const [lastTestResult, setLastTestResult] = useState<any>(null);
+    const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
     const { isOpen, onOpen, onClose } = useDisclosure();
     const toast = useToast();
     const [canExtendTime, setCanExtendTime] = useState(true);
