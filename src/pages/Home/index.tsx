@@ -1,4 +1,4 @@
-import { Box, VStack, Heading, Text, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText, useColorModeValue, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react';
+import { Box, VStack, Heading, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText, useColorModeValue, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react';
 import { loadFromLocalStorage } from '../../utils/localStorage';
 import type { Lesson, TestResult } from '../../types';
 
