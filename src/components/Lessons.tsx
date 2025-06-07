@@ -26,7 +26,7 @@ import {
     SimpleGrid,
     useColorModeValue
 } from '@chakra-ui/react';
-import { FaArrowLeft, FaClock } from 'react-icons/fa';
+import { FaArrowLeft, FaClock, FaQuestion } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { setCookie, getCookie, removeCookie } from '../utils/cookies';
 import type { Question, Lesson, TestResult } from '../types';
@@ -120,6 +120,8 @@ const Lessons = () => {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const toast = useToast();
     const [canExtendTime, setCanExtendTime] = useState(true);
+    const [questionsToRepeat, setQuestionsToRepeat] = useState<Question[]>([]);
+    const [isInRepeatMode, setIsInRepeatMode] = useState(false);
 
     // Save lessons state to cookies whenever it changes
     useEffect(() => {
@@ -222,17 +224,28 @@ const Lessons = () => {
             setCurrentQuestionIndex(nextIndex);
             setCookie('currentQuestionIndex', nextIndex);
             resetQuestion();
+        } else if (questionsToRepeat.length > 0 && !isInRepeatMode) {
+            // Start repeat mode
+            setIsInRepeatMode(true);
+            setCurrentQuestionIndex(0);
+            currentLesson.questions = questionsToRepeat;
+            toast({
+                title: "Czas na powtórkę!",
+                description: `Masz ${questionsToRepeat.length} pytań do powtórzenia`,
+                status: "info",
+                duration: 3000,
+                isClosable: true
+            });
+            resetQuestion();
         } else {
             // Handle test completion
             const endTime = new Date();
             const testDuration = testStartTime ? (endTime.getTime() - testStartTime.getTime()) / 1000 : 0;
             
-            // Calculate score
             const totalQuestions = currentLesson.questions.length;
             const incorrectCount = Object.values(incorrectAttempts).reduce((sum, count) => sum + count, 0);
             const score = Math.max(0, Math.round((1 - incorrectCount / totalQuestions) * 100));
             
-            // Update lesson progress
             const updatedLessons = lessons.map(lesson =>
                 lesson.id === currentLesson.id
                     ? {
@@ -244,10 +257,8 @@ const Lessons = () => {
                     : lesson
             );
             
-            // Save progress
             setLessons(updatedLessons);
             
-            // Show results
             const testResult: TestResult = {
                 lessonId: currentLesson.id,
                 lessonTitle: currentLesson.title,
@@ -265,19 +276,18 @@ const Lessons = () => {
             };
             setLastTestResult(testResult);
             
-            // Update today's lessons count
             const today = new Date().toDateString();
             const todayKey = `todayLessons_${today}`;
             const todayLessons = getCookie(todayKey) || 0;
             setCookie(todayKey, todayLessons + 1);
             
-            // Reset state
             setCurrentLesson(null);
             setCurrentQuestionIndex(0);
             setTestStartTime(null);
+            setQuestionsToRepeat([]);
+            setIsInRepeatMode(false);
             resetQuestion();
             
-            // Show results modal
             onOpen();
         }
     };
@@ -295,8 +305,17 @@ const Lessons = () => {
         
         const currentQuestion = currentLesson.questions[currentQuestionIndex];
         handleIncorrectAnswer(currentQuestion.question);
-        setShowExplanation(true);
-        setIsAnsweredCorrectly(false);
+        setQuestionsToRepeat(prev => [...prev, currentQuestion]);
+        
+        toast({
+            title: "Pytanie dodane do powtórki",
+            description: "To pytanie pojawi się ponownie na końcu lekcji",
+            status: "info",
+            duration: 2000,
+            isClosable: true
+        });
+
+        handleNextQuestion();
     };
 
     const handleIncorrectAnswer = (question: string) => {
@@ -380,6 +399,8 @@ const Lessons = () => {
     const renderQuestion = (question: Question) => {
         if (!question) return null;
 
+        const buttonColorScheme = useColorModeValue('teal', 'cyan');
+
         return (
             <VStack spacing={6} align="stretch" w="100%" maxW="800px" mx="auto">
                 <Box 
@@ -390,7 +411,18 @@ const Lessons = () => {
                     borderWidth="1px"
                     borderColor={useColorModeValue('gray.200', 'gray.600')}
                 >
-                    <Text fontSize="2xl" fontWeight="bold" mb={4}>{question.question}</Text>
+                    <HStack justify="space-between" mb={4}>
+                        <Text fontSize="2xl" fontWeight="bold">{question.question}</Text>
+                        <Button
+                            leftIcon={<FaQuestion />}
+                            onClick={handleDontKnow}
+                            variant="ghost"
+                            colorScheme={buttonColorScheme}
+                            isDisabled={isAnsweredCorrectly || showExplanation}
+                        >
+                            Nie wiem
+                        </Button>
+                    </HStack>
                     {showExplanation && question.explanation && (
                         <Text color={useColorModeValue('gray.600', 'gray.300')} fontSize="lg">
                             {question.explanation}
@@ -403,12 +435,11 @@ const Lessons = () => {
                         {question.options.map((option, index) => (
                             <ScaleFade in={true} key={index}>
                                 <Button
-                                    key={index}
                                     onClick={() => handleAnswer(option)}
                                     size="lg"
                                     height="80px"
                                     w="100%"
-                                    colorScheme={isAnsweredCorrectly ? 'green' : 'blue'}
+                                    colorScheme={isAnsweredCorrectly ? 'green' : buttonColorScheme}
                                     variant={isAnsweredCorrectly ? 'solid' : 'outline'}
                                     isDisabled={isAnsweredCorrectly || showExplanation}
                                     _hover={{ transform: 'scale(1.02)' }}
@@ -417,15 +448,6 @@ const Lessons = () => {
                                     position="relative"
                                     overflow="hidden"
                                 >
-                                    <Box
-                                        position="absolute"
-                                        top="0"
-                                        left="0"
-                                        w="4px"
-                                        h="100%"
-                                        bg={useColorModeValue('blue.500', 'blue.300')}
-                                        opacity={0.5}
-                                    />
                                     {option}
                                 </Button>
                             </ScaleFade>
@@ -453,14 +475,14 @@ const Lessons = () => {
                                 textAlign="center"
                                 isDisabled={isAnsweredCorrectly || showExplanation}
                                 _focus={{
-                                    borderColor: 'blue.400',
-                                    boxShadow: '0 0 0 1px var(--chakra-colors-blue-400)'
+                                    borderColor: `${buttonColorScheme}.400`,
+                                    boxShadow: `0 0 0 1px var(--chakra-colors-${buttonColorScheme}-400)`
                                 }}
                                 autoFocus
                             />
                             <Button
                                 onClick={() => handleAnswer(textInput)}
-                                colorScheme="blue"
+                                colorScheme={buttonColorScheme}
                                 size="lg"
                                 width="100%"
                                 mt={4}
@@ -495,7 +517,7 @@ const Lessons = () => {
                                             onClick={() => handleMatchingClick(pair.spanish, true)}
                                             colorScheme={
                                                 selectedSpanish === pair.spanish
-                                                    ? 'blue'
+                                                    ? buttonColorScheme
                                                     : pair.spanish in matchedPairs
                                                     ? 'green'
                                                     : 'gray'
@@ -566,7 +588,7 @@ const Lessons = () => {
                 {showExplanation && !isAnsweredCorrectly && (
                     <Button
                         onClick={handleNextQuestion}
-                        colorScheme="blue"
+                        colorScheme={buttonColorScheme}
                         size="lg"
                         width="100%"
                         mt={4}
@@ -575,6 +597,17 @@ const Lessons = () => {
                     >
                         Następne pytanie
                     </Button>
+                )}
+
+                {isInRepeatMode && (
+                    <Text
+                        color={useColorModeValue('gray.600', 'gray.400')}
+                        fontSize="md"
+                        textAlign="center"
+                        mt={4}
+                    >
+                        Tryb powtórki: {currentQuestionIndex + 1}/{questionsToRepeat.length}
+                    </Text>
                 )}
             </VStack>
         );
