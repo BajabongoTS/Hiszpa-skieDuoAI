@@ -1,10 +1,16 @@
+export type QuestionType = 'multiple-choice' | 'text-input' | 'matching';
+
 export interface Question {
-    type: 'multiple-choice' | 'text-input' | 'matching';
+    type: QuestionType;
     question: string;
-    correctAnswer: string;
     options?: string[];
-    matchingPairs?: { spanish: string; polish: string }[];
+    correctAnswer: string;
     explanation?: string;
+    matchingPairs?: Array<{ spanish: string; polish: string }>;
+    displayOrder?: {
+        spanish: string[];
+        polish: string[];
+    };
 }
 
 export interface Lesson {

@@ -1,9 +1,36 @@
 import { useState, useEffect } from 'react';
-import { Box, Button, VStack, Text, useToast, HStack, useDisclosure, SimpleGrid } from '@chakra-ui/react';
+import {
+    Box,
+    Button,
+    VStack,
+    Text,
+    useToast,
+    HStack,
+    useDisclosure,
+    SimpleGrid,
+    Input,
+    IconButton,
+    Heading,
+    Progress,
+    CircularProgress,
+    CircularProgressLabel,
+    Modal,
+    ModalOverlay,
+    ModalContent,
+    ModalHeader,
+    ModalCloseButton,
+    ModalBody,
+    Tooltip,
+    Icon,
+    Grid,
+    ScaleFade
+} from '@chakra-ui/react';
+import { FaArrowLeft, FaChartBar, FaCheck, FaRedo } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { setCookie, getCookie } from '../utils/cookies';
-import type { Question, Lesson, TestResult } from '../types';
+import type { Question, Lesson } from '../types';
 import { lessonsData } from '../data/lessonsData';
+import TestStats from './TestStats';
 
 const MotionBox = motion(Box);
 
@@ -20,18 +47,12 @@ const normalizeSpanishText = (text: string): string => {
         .trim();
 };
 
-// Add a shuffle function to randomize array order
-const shuffleArray = <T,>(array: T[]): T[] => {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-};
+interface IncorrectPairs {
+    spanish: string;
+    polish: string;
+}
 
 const Lessons = () => {
-    // Initialize state from cookies or default values
     const [lessons, setLessons] = useState<Lesson[]>(() => {
         const savedLessons = getCookie('lessons');
         // If we have saved lessons, use them, otherwise initialize with default data
@@ -48,28 +69,18 @@ const Lessons = () => {
     
     const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [showExplanation, setShowExplanation] = useState(false);
-    const [textInput, setTextInput] = useState('');
-    const [matchedPairs, setMatchedPairs] = useState<Record<string, string>>({});
     const [selectedSpanish, setSelectedSpanish] = useState<string | null>(null);
+    const [matchedPairs, setMatchedPairs] = useState<Record<string, string>>({});
+    const [incorrectPairs, setIncorrectPairs] = useState<IncorrectPairs | null>(null);
+    const [textInput, setTextInput] = useState('');
     const [isAnsweredCorrectly, setIsAnsweredCorrectly] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(30);
-    const [timerActive, setTimerActive] = useState(true);
-    const [canExtendTime, setCanExtendTime] = useState(true);
-    const [questionsToRepeat, setQuestionsToRepeat] = useState<Set<number>>(new Set());
-    const [isInRepeatMode, setIsInRepeatMode] = useState(false);
-    const toast = useToast();
+    const [showExplanation, setShowExplanation] = useState(false);
     const [incorrectAttempts, setIncorrectAttempts] = useState<Record<string, number>>({});
     const [testStartTime, setTestStartTime] = useState<Date | null>(null);
-    const [lastTestResult, setLastTestResult] = useState<TestResult | null>(() => {
-        const savedResult = getCookie('lastTestResult');
-        return savedResult ? { ...savedResult, completedAt: new Date(savedResult.completedAt) } : null;
-    });
+    const [timeLeft, setTimeLeft] = useState(30);
+    const [lastTestResult, setLastTestResult] = useState<any>(null);
     const { isOpen, onOpen, onClose } = useDisclosure();
-
-    // Add state for shuffled pairs
-    const [shuffledSpanish, setShuffledSpanish] = useState<string[]>([]);
-    const [shuffledPolish, setShuffledPolish] = useState<string[]>([]);
+    const toast = useToast();
 
     // Save lessons state to cookies whenever it changes
     useEffect(() => {
@@ -81,11 +92,9 @@ const Lessons = () => {
         if (currentLesson) {
             setCookie('currentLesson', currentLesson);
             setCookie('currentQuestionIndex', currentQuestionIndex);
-            setCookie('questionsToRepeat', Array.from(questionsToRepeat));
-            setCookie('isInRepeatMode', isInRepeatMode);
             setCookie('incorrectAttempts', incorrectAttempts);
         }
-    }, [currentLesson, currentQuestionIndex, questionsToRepeat, isInRepeatMode, incorrectAttempts]);
+    }, [currentLesson, currentQuestionIndex, incorrectAttempts]);
 
     // Save last test result to cookies whenever it changes
     useEffect(() => {
@@ -96,70 +105,87 @@ const Lessons = () => {
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
-        if (timerActive && timeLeft > 0 && currentLesson && !showExplanation && !isAnsweredCorrectly) {
+        if (timeLeft > 0 && currentLesson && !showExplanation && !isAnsweredCorrectly) {
             timer = setInterval(() => {
                 setTimeLeft(prev => prev - 1);
             }, 1000);
         }
         return () => clearInterval(timer);
-    }, [timerActive, timeLeft, currentLesson, showExplanation, isAnsweredCorrectly]);
+    }, [timeLeft, currentLesson, showExplanation, isAnsweredCorrectly]);
 
     useEffect(() => {
-        if (timeLeft === 0 && timerActive) {
+        if (timeLeft === 0) {
             handleDontKnow();
         }
     }, [timeLeft]);
 
-    // Update the startLesson function to include resetting shuffled arrays
-    const startLesson = (lesson: Lesson) => {
-        const lessonToStart = lessons.find(l => l.id === lesson.id) || lesson;
-        setCurrentLesson(lessonToStart);
-        setCurrentQuestionIndex(0);
-        setShowExplanation(false);
+    const resetQuestion = () => {
         setTextInput('');
-        setMatchedPairs({});
-        setSelectedSpanish(null);
         setIsAnsweredCorrectly(false);
-        setTimeLeft(30);
-        setTimerActive(true);
-        setCanExtendTime(true);
-        setQuestionsToRepeat(new Set());
-        setIsInRepeatMode(false);
+        setShowExplanation(false);
         setIncorrectAttempts({});
         setTestStartTime(new Date());
-        setShuffledSpanish([]);
-        setShuffledPolish([]);
+        setIncorrectPairs(null);
     };
 
-    // Add useEffect to shuffle pairs when question changes
+    const handleNextQuestion = () => {
+        if (!currentLesson) return;
+
+        if (currentQuestionIndex < currentLesson.questions.length - 1) {
+            setCurrentQuestionIndex(prev => prev + 1);
+            resetQuestion();
+        } else {
+            // Handle test completion
+            const endTime = new Date();
+            const testDuration = testStartTime ? (endTime.getTime() - testStartTime.getTime()) / 1000 : 0;
+            
+            // Calculate score
+            const totalQuestions = currentLesson.questions.length;
+            const incorrectCount = Object.values(incorrectAttempts).reduce((sum, count) => sum + count, 0);
+            const score = Math.max(0, Math.round((1 - incorrectCount / totalQuestions) * 100));
+            
+            // Update lesson progress
+            const updatedLessons = lessons.map(lesson =>
+                lesson.id === currentLesson.id
+                    ? {
+                        ...lesson,
+                        progress: Math.max(lesson.progress || 0, score),
+                        bestScore: Math.max(lesson.bestScore || 0, score)
+                    }
+                    : lesson
+            );
+            
+            // Save progress
+            setLessons(updatedLessons);
+            setCookie('lessonsProgress', JSON.stringify(updatedLessons));
+            
+            // Show results
+            setLastTestResult({
+                score,
+                duration: testDuration,
+                incorrectAttempts: Object.keys(incorrectAttempts).length,
+                totalQuestions
+            });
+            onOpen();
+            
+            // Reset state
+            setCurrentLesson(null);
+            setCurrentQuestionIndex(0);
+            resetQuestion();
+        }
+    };
+
     useEffect(() => {
-        if (currentLesson && currentLesson.questions[currentQuestionIndex] && currentLesson.questions[currentQuestionIndex].type === 'matching' && currentLesson.questions[currentQuestionIndex].matchingPairs) {
-            const pairs = currentLesson.questions[currentQuestionIndex].matchingPairs;
-            setShuffledSpanish(shuffleArray(pairs.map(p => p.spanish)));
-            setShuffledPolish(shuffleArray(pairs.map(p => p.polish)));
+        if (currentLesson && currentLesson.questions[currentQuestionIndex]) {
             setMatchedPairs({});
             setSelectedSpanish(null);
+            setTimeLeft(30);
         }
     }, [currentQuestionIndex, currentLesson]);
-
-    const addToQuestionsToRepeat = (questionIndex: number) => {
-        setQuestionsToRepeat((prev: Set<number>) => new Set([...Array.from(prev), questionIndex]));
-    };
-
-    const removeFromQuestionsToRepeat = (questionIndex: number) => {
-        setQuestionsToRepeat((prev: Set<number>) => {
-            const newSet = new Set(Array.from(prev));
-            newSet.delete(questionIndex);
-            return newSet;
-        });
-    };
 
     const handleDontKnow = () => {
         if (!currentLesson) return;
         const currentQuestion = currentLesson.questions[currentQuestionIndex];
-        setTimerActive(false);
-        
-        addToQuestionsToRepeat(currentQuestionIndex);
         
         toast({
             title: "Nie szkodzi!",
@@ -184,60 +210,10 @@ const Lessons = () => {
         }));
     };
 
-    const finishLesson = (lesson: Lesson) => {
-        if (!testStartTime) return;
-
-        const timeSpent = Math.floor((new Date().getTime() - testStartTime.getTime()) / 1000);
-        const correctAnswers = lesson.questions.length - Object.keys(incorrectAttempts).length;
-        const score = Math.round((correctAnswers / lesson.questions.length) * 100);
-
-        const result: TestResult = {
-            lessonTitle: lesson.title,
-            totalQuestions: lesson.questions.length,
-            correctAnswers,
-            incorrectAttempts,
-            timeSpent,
-            completedAt: new Date()
-        };
-
-        // Update lesson progress and best score
-        setLessons(prevLessons => {
-            return prevLessons.map(l => {
-                if (l.id === lesson.id) {
-                    const newBestScore = l.bestScore ? Math.max(l.bestScore, score) : score;
-                    return {
-                        ...l,
-                        progress: 100,
-                        lastCompleted: new Date(),
-                        bestScore: newBestScore
-                    };
-                }
-                return l;
-            });
-        });
-
-        // Save test results
-        const existingResults = getCookie('testResults') || [];
-        const updatedResults = [result, ...existingResults];
-        setCookie('testResults', updatedResults);
-
-        // Update today's lesson count
-        const today = new Date().toDateString();
-        const todayKey = `todayLessons_${today}`;
-        const todayLessons = getCookie(todayKey) || 0;
-        setCookie(todayKey, todayLessons + 1);
-
-        setLastTestResult(result);
-        setCurrentLesson(null); // Reset current lesson
-        onOpen();
-    };
-
     const handleAnswer = (answer: string) => {
         if (!currentLesson) return;
         const currentQuestion = currentLesson.questions[currentQuestionIndex];
         let isCorrect = false;
-
-        setTimerActive(false);
 
         switch (currentQuestion.type) {
             case 'multiple-choice':
@@ -263,12 +239,7 @@ const Lessons = () => {
                 duration: 2000,
                 isClosable: true,
             });
-            setTimerActive(true);
             return;
-        }
-
-        if (questionsToRepeat.has(currentQuestionIndex)) {
-            removeFromQuestionsToRepeat(currentQuestionIndex);
         }
 
         setIsAnsweredCorrectly(true);
@@ -283,92 +254,37 @@ const Lessons = () => {
         setShowExplanation(true);
     };
 
-    const handleContinue = () => {
-            setShowExplanation(false);
-            setTextInput('');
-            setMatchedPairs({});
-            setSelectedSpanish(null);
-            setIsAnsweredCorrectly(false);
-        setTimerActive(true);
-        setTimeLeft(30);
-        setCanExtendTime(true);
-
-        const totalQuestions = currentLesson!.questions.length;
+    const handleMatchingClick = (word: string, isSpanish: boolean) => {
+        if (!currentLesson || isAnsweredCorrectly) return;
         
-        // If we're in repeat mode
-        if (isInRepeatMode) {
-            // Find next question to repeat
-            const repeatArray = Array.from(questionsToRepeat);
-            const currentRepeatIndex = repeatArray.indexOf(currentQuestionIndex);
-            
-            if (currentRepeatIndex < repeatArray.length - 1) {
-                // Move to next repeat question
-                setCurrentQuestionIndex(repeatArray[currentRepeatIndex + 1]);
-            } else if (questionsToRepeat.size > 0) {
-                // If we've completed one round of repeats but still have questions, start over
-                setCurrentQuestionIndex(repeatArray[0]);
-                toast({
-                    title: "Kolejna runda powtórek!",
-                    description: `Pozostało ${questionsToRepeat.size} pytań do opanowania.`,
-                    status: "info",
-                    duration: 2000,
-                    isClosable: true,
-                });
-            } else {
-                // All questions answered correctly, finish lesson
-                const updatedLessons = lessons.map(l => {
-                    if (l.id === currentLesson!.id) {
-                        return { ...l, progress: 100 };
-                    }
-                    return l;
-                });
-                setLessons(updatedLessons);
-                finishLesson(currentLesson!);
-                setCurrentLesson(null);
-            }
-            return;
-        }
+        if (isSpanish) {
+            setSelectedSpanish(word);
+            setIncorrectPairs(null);
+        } else if (selectedSpanish) {
+            const currentQuestion = currentLesson?.questions[currentQuestionIndex];
+            const isCorrectMatch = currentQuestion?.matchingPairs?.some(
+                pair => pair.spanish === selectedSpanish && pair.polish === word
+            );
 
-        // Normal mode progression
-        if (currentQuestionIndex + 1 < totalQuestions) {
-            // Move to next question in normal sequence
-            setCurrentQuestionIndex((prev: number) => prev + 1);
-        } else if (questionsToRepeat.size > 0) {
-            // Switch to repeat mode
-            setIsInRepeatMode(true);
-            setCurrentQuestionIndex(Array.from(questionsToRepeat)[0]);
-            toast({
-                title: "Czas na powtórkę!",
-                description: `Powtórzymy ${questionsToRepeat.size} pytań, które sprawiły trudność.`,
-                status: "info",
-                duration: 3000,
-                isClosable: true,
-            });
-        } else {
-            // No questions to repeat, finish lesson
-            const updatedLessons = lessons.map(l => {
-                if (l.id === currentLesson!.id) {
-                    return { ...l, progress: 100 };
+            if (isCorrectMatch) {
+                const newPairs = { ...matchedPairs, [selectedSpanish]: word };
+                setMatchedPairs(newPairs);
+                setSelectedSpanish(null);
+                setIncorrectPairs(null);
+
+                // Check if all pairs are matched correctly
+                if (currentQuestion?.matchingPairs && 
+                    Object.keys(newPairs).length === currentQuestion.matchingPairs.length) {
+                    setIsAnsweredCorrectly(true);
+                    setShowExplanation(true);
                 }
-                return l;
-            });
-            setLessons(updatedLessons);
-            finishLesson(currentLesson!);
-            setCurrentLesson(null);
-        }
-    };
-
-    const handleExtendTime = () => {
-        if (canExtendTime) {
-            setTimeLeft(prev => prev + 15);
-            setCanExtendTime(false);
-            toast({
-                title: "Dodano czas!",
-                description: "Otrzymałeś dodatkowe 15 sekund.",
-                status: "info",
-                duration: 2000,
-                isClosable: true,
-            });
+            } else {
+                setIncorrectPairs({ spanish: selectedSpanish, polish: word });
+                setTimeout(() => {
+                    setIncorrectPairs(null);
+                    setSelectedSpanish(null);
+                }, 1000);
+            }
         }
     };
 
@@ -496,9 +412,7 @@ const Lessons = () => {
 
     if (currentLesson) {
         const currentQuestion = currentLesson.questions[currentQuestionIndex];
-        const isLastQuestion = !isInRepeatMode && 
-            currentQuestionIndex === currentLesson.questions.length - 1 && 
-            questionsToRepeat.size === 0;
+        const isLastQuestion = currentQuestionIndex === currentLesson.questions.length - 1;
 
         return (
             <ScaleFade initialScale={0.9} in={true}>
@@ -519,26 +433,13 @@ const Lessons = () => {
                         />
                         <Heading size="lg" mx="auto">
                             {currentLesson.title}
-                            {isInRepeatMode && (
-                                <Text as="span" fontSize="md" color="orange.500" ml={2}>
-                                    (Tryb powtórki)
-                                </Text>
-                            )}
                         </Heading>
                     </HStack>
 
                     <VStack align="end" spacing={0}>
                         <Text>
-                            {isInRepeatMode 
-                                ? `Powtórka: ${Array.from(questionsToRepeat).indexOf(currentQuestionIndex) + 1} z ${questionsToRepeat.size}`
-                                : `Pytanie ${currentQuestionIndex + 1} z ${currentLesson.questions.length}`
-                            }
+                            Pytanie {currentQuestionIndex + 1} z {currentLesson.questions.length}
                         </Text>
-                        {!isInRepeatMode && questionsToRepeat.size > 0 && (
-                            <Text fontSize="sm" color="orange.500">
-                                Pytania do powtórki: {questionsToRepeat.size}
-                            </Text>
-                        )}
                     </VStack>
 
                     <Progress
@@ -552,14 +453,6 @@ const Lessons = () => {
                             <HStack w="100%" justify="space-between" align="center">
                                 <Text fontSize="xl" fontWeight="bold">{currentQuestion.question}</Text>
                                 <HStack spacing={2}>
-                                    <IconButton
-                                        aria-label="Add 15 seconds"
-                                        icon={<FaClock />}
-                                        onClick={handleExtendTime}
-                                        isDisabled={!canExtendTime || isAnsweredCorrectly}
-                                        colorScheme={canExtendTime ? "teal" : "gray"}
-                                        size="sm"
-                                    />
                                     <CircularProgress
                                         value={(timeLeft / 30) * 100}
                                         color={timeLeft > 10 ? "teal.400" : "red.400"}
@@ -584,7 +477,7 @@ const Lessons = () => {
                             )}
                             {isAnsweredCorrectly && (
                                 <Button
-                                    onClick={handleContinue}
+                                    onClick={handleNextQuestion}
                                     colorScheme="teal"
                                     size="lg"
                                     mt={4}
@@ -639,7 +532,10 @@ const Lessons = () => {
                                 <Progress value={lesson.progress} rounded="md" />
                                 <HStack spacing={2}>
                                     <Button
-                                        onClick={() => startLesson(lesson)}
+                                        onClick={() => {
+                                            setCurrentLesson(lesson);
+                                            setCurrentQuestionIndex(0);
+                                        }}
                                         colorScheme="teal"
                                         flex="1"
                                         leftIcon={lesson.progress === 100 ? <FaRedo /> : undefined}
