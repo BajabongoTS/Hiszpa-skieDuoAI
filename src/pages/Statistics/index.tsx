@@ -3,7 +3,7 @@ import { loadFromLocalStorage } from '../../utils/localStorage';
 import type { TestResult } from '../../types';
 
 const StatisticsPage = () => {
-    const testResults = loadFromLocalStorage('testResults', []) as TestResult[];
+    const testResults = loadFromLocalStorage<TestResult[]>('testResults', []);
 
     return (
         <Box p={8} maxW="1200px" mx="auto">
@@ -24,7 +24,7 @@ const StatisticsPage = () => {
                                 </Tr>
                             </Thead>
                             <Tbody>
-                                {testResults.map((result, index) => (
+                                {testResults.map((result: TestResult, index: number) => (
                                     <Tr key={index}>
                                         <Td>{result.lessonTitle}</Td>
                                         <Td isNumeric>{result.correctAnswers}</Td>

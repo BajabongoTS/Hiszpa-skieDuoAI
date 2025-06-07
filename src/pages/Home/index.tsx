@@ -3,7 +3,7 @@ import { loadFromLocalStorage } from '../../utils/localStorage';
 import type { Lesson } from '../../types';
 
 const Home = () => {
-    const lessonsData = loadFromLocalStorage('lessons', []);
+    const lessonsData = loadFromLocalStorage<Lesson[]>('lessons', []);
     const bgColor = useColorModeValue('white', 'gray.700');
     const borderColor = useColorModeValue('gray.200', 'gray.600');
 
@@ -54,7 +54,7 @@ const Home = () => {
                         <Stat>
                             <StatLabel>Dzisiejsza aktywność</StatLabel>
                             <StatNumber>
-                                {loadFromLocalStorage('todayLessons', 0)}
+                                {loadFromLocalStorage<number>('todayLessons', 0)}
                             </StatNumber>
                             <StatHelpText>
                                 Ukończonych lekcji

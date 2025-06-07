@@ -1,13 +1,12 @@
 import { Box, Grid, VStack, Heading, Text, Progress, Button, useToast, ScaleFade, Input, HStack, Tooltip, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, useDisclosure, IconButton, CircularProgress, CircularProgressLabel } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { FaCheck, FaChartBar, FaClock, FaArrowLeft } from 'react-icons/fa';
+import { FaCheck, FaChartBar, FaClock } from 'react-icons/fa';
 import TestStats from './TestStats';
 import type { TestResult } from './TestStats';
-import FlashcardMode from './FlashcardMode';
-import { useNavigate } from 'react-router-dom';
 import { parseVocabulary, createQuestionsFromVocab } from '../utils/vocabulary';
 import { bodyPartsVocab, foodVocab, excursionVocab, aWordsVocab, aPeopleVocab, numbersVocab } from '../data/vocabulary';
+import { saveToLocalStorage, loadFromLocalStorage } from '../utils/localStorage';
 
 const MotionBox = motion(Box);
 
@@ -101,34 +100,15 @@ lessonsData.forEach(lesson => {
     lesson.questions = createQuestionsFromVocab(lesson.vocabulary);
 });
 
-// Add these helper functions at the top of the file, before the Lessons component
-const saveToLocalStorage = (key: string, data: any) => {
-    try {
-        localStorage.setItem(key, JSON.stringify(data));
-    } catch (error) {
-        console.error('Error saving to localStorage:', error);
-    }
-};
-
-const loadFromLocalStorage = (key: string, defaultValue: any) => {
-    try {
-        const item = localStorage.getItem(key);
-        return item ? JSON.parse(item) : defaultValue;
-    } catch (error) {
-        console.error('Error loading from localStorage:', error);
-        return defaultValue;
-    }
-};
-
 const Lessons = () => {
     const [lessons, setLessons] = useState<Lesson[]>(() => 
-        loadFromLocalStorage('lessons', lessonsData)
+        loadFromLocalStorage<Lesson[]>('lessons', lessonsData)
     );
     const [currentLesson, setCurrentLesson] = useState<Lesson | null>(() =>
-        loadFromLocalStorage('currentLesson', null)
+        loadFromLocalStorage<Lesson | null>('currentLesson', null)
     );
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(() =>
-        loadFromLocalStorage('currentQuestionIndex', 0)
+        loadFromLocalStorage<number>('currentQuestionIndex', 0)
     );
     const [showExplanation, setShowExplanation] = useState(false);
     const [textInput, setTextInput] = useState('');
@@ -140,19 +120,18 @@ const Lessons = () => {
     const [timerActive, setTimerActive] = useState(true);
     const [canExtendTime, setCanExtendTime] = useState(true);
     const [questionsToRepeat, setQuestionsToRepeat] = useState<Set<number>>(() => 
-        new Set(loadFromLocalStorage('questionsToRepeat', []))
+        new Set(loadFromLocalStorage<number[]>('questionsToRepeat', []))
     );
     const [isInRepeatMode, setIsInRepeatMode] = useState(() =>
-        loadFromLocalStorage('isInRepeatMode', false)
+        loadFromLocalStorage<boolean>('isInRepeatMode', false)
     );
     const toast = useToast();
     const [incorrectAttempts, setIncorrectAttempts] = useState<Record<string, number>>(() =>
-        loadFromLocalStorage('incorrectAttempts', {})
+        loadFromLocalStorage<Record<string, number>>('incorrectAttempts', {})
     );
     const [testStartTime, setTestStartTime] = useState<Date | null>(null);
     const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
     const { isOpen, onOpen, onClose } = useDisclosure();
-    const navigate = useNavigate();
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
@@ -670,7 +649,7 @@ const Lessons = () => {
                     <HStack justify="space-between" align="center" position="relative">
                         <IconButton
                             aria-label="Return to tests"
-                            icon={<FaArrowLeft />}
+                            icon={<FaClock />}
                             onClick={() => {
                                 const shouldExit = window.confirm('Czy na pewno chcesz wrócić do listy testów? Twój postęp zostanie zapisany.');
                                 if (shouldExit) {
