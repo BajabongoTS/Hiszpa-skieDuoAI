@@ -55,6 +55,11 @@ interface IncorrectPairs {
     polish: string;
 }
 
+// Generate questions for each lesson
+lessonsData.forEach(lesson => {
+    lesson.questions = createQuestionsFromVocab(lesson.vocabulary);
+});
+
 const Lessons = () => {
     const [lessons, setLessons] = useState<Lesson[]>(() => {
         // Try to get saved lessons from cookies
@@ -217,12 +222,12 @@ const Lessons = () => {
             setLessons(updatedLessons);
             
             // Show results
-            const testResult = {
-                lessonId: currentLesson.id,
-                score,
-                duration: testDuration,
-                incorrectAttempts: Object.keys(incorrectAttempts).length,
+            const testResult: TestResult = {
+                lessonTitle: currentLesson.title,
                 totalQuestions,
+                correctAnswers: totalQuestions - Object.keys(incorrectAttempts).length,
+                incorrectAttempts,
+                timeSpent: testDuration,
                 completedAt: new Date()
             };
             setLastTestResult(testResult);
