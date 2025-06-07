@@ -1,13 +1,10 @@
-export type QuestionType = 'multiple-choice' | 'text-input' | 'matching' | 'flashcard';
-
 export interface Question {
-    type: QuestionType;
+    type: 'multiple-choice' | 'text-input' | 'matching';
     question: string;
-    options?: string[];
     correctAnswer: string;
+    options?: string[];
+    matchingPairs?: { spanish: string; polish: string }[];
     explanation?: string;
-    matchingPairs?: Array<{ spanish: string; polish: string }>;
-    flashcardData?: { spanish: string; polish: string };
 }
 
 export interface Lesson {
@@ -16,7 +13,8 @@ export interface Lesson {
     description: string;
     progress: number;
     questions: Question[];
-    vocabulary: Array<{ spanish: string; polish: string }>;
+    lastCompleted?: Date;
+    bestScore?: number;
 }
 
 export interface TestResult {

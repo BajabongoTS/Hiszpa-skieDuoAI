@@ -7,6 +7,7 @@ import type { TestResult } from './TestStats';
 import { parseVocabulary, createQuestionsFromVocab } from '../utils/vocabulary';
 import { bodyPartsVocab, foodVocab, excursionVocab } from '../data/vocabulary';
 import { setCookie, getCookie } from '../utils/cookies';
+import type { Question, Lesson } from '../types';
 
 const MotionBox = motion(Box);
 
@@ -23,63 +24,31 @@ const normalizeSpanishText = (text: string): string => {
         .trim();
 };
 
-type QuestionType = 'multiple-choice' | 'text-input' | 'matching' | 'flashcard';
-
-interface Question {
-    type: QuestionType;
-    question: string;
-    options?: string[];
-    correctAnswer: string;
-    explanation?: string;
-    matchingPairs?: Array<{ spanish: string; polish: string }>;
-    flashcardData?: { spanish: string; polish: string };
-}
-
-interface Lesson {
-    id: number;
-    title: string;
-    description: string;
-    progress: number;
-    questions: Question[];
-    vocabulary: Array<{ spanish: string; polish: string }>;
-    lastCompleted?: Date;
-    bestScore?: number;
-}
-
 const lessonsData: Lesson[] = [
     {
         id: 1,
         title: "Części ciała",
         description: "Naucz się nazw części ciała po hiszpańsku",
         progress: 0,
-        vocabulary: parseVocabulary(bodyPartsVocab),
-        questions: []
+        questions: createQuestionsFromVocab(parseVocabulary(bodyPartsVocab))
     },
     {
         id: 2,
         title: "Jedzenie",
         description: "Poznaj słownictwo związane z jedzeniem",
         progress: 0,
-        vocabulary: parseVocabulary(foodVocab),
-        questions: []
+        questions: createQuestionsFromVocab(parseVocabulary(foodVocab))
     },
     {
         id: 3,
         title: "Wycieczka",
         description: "Słownictwo przydatne podczas wycieczek",
         progress: 0,
-        vocabulary: parseVocabulary(excursionVocab),
-        questions: []
+        questions: createQuestionsFromVocab(parseVocabulary(excursionVocab))
     }
 ];
 
-// Generate questions for each lesson
-lessonsData.forEach(lesson => {
-    lesson.questions = createQuestionsFromVocab(lesson.vocabulary);
-});
-
 const Lessons = () => {
-    // Initialize state from cookies or default values
     const [lessons, setLessons] = useState<Lesson[]>(() => {
         const savedLessons = getCookie('lessons');
         return savedLessons || lessonsData;
@@ -112,6 +81,17 @@ const Lessons = () => {
         setCookie('lessons', lessons);
     }, [lessons]);
 
+    // Save current lesson state
+    useEffect(() => {
+        if (currentLesson) {
+            setCookie('currentLesson', currentLesson);
+            setCookie('currentQuestionIndex', currentQuestionIndex);
+            setCookie('questionsToRepeat', Array.from(questionsToRepeat));
+            setCookie('isInRepeatMode', isInRepeatMode);
+            setCookie('incorrectAttempts', incorrectAttempts);
+        }
+    }, [currentLesson, currentQuestionIndex, questionsToRepeat, isInRepeatMode, incorrectAttempts]);
+
     // Save last test result to cookies whenever it changes
     useEffect(() => {
         if (lastTestResult) {
@@ -134,41 +114,6 @@ const Lessons = () => {
             handleDontKnow();
         }
     }, [timeLeft]);
-
-    useEffect(() => {
-        saveToLocalStorage('lessons', lessons);
-    }, [lessons]);
-
-    useEffect(() => {
-        saveToLocalStorage('currentLesson', currentLesson);
-    }, [currentLesson]);
-
-    useEffect(() => {
-        saveToLocalStorage('currentQuestionIndex', currentQuestionIndex);
-    }, [currentQuestionIndex]);
-
-    useEffect(() => {
-        saveToLocalStorage('questionsToRepeat', Array.from(questionsToRepeat));
-    }, [questionsToRepeat]);
-
-    useEffect(() => {
-        saveToLocalStorage('isInRepeatMode', isInRepeatMode);
-    }, [isInRepeatMode]);
-
-    useEffect(() => {
-        saveToLocalStorage('incorrectAttempts', incorrectAttempts);
-    }, [incorrectAttempts]);
-
-    useEffect(() => {
-        return () => {
-            saveToLocalStorage('lessons', lessons);
-            saveToLocalStorage('currentLesson', currentLesson);
-            saveToLocalStorage('currentQuestionIndex', currentQuestionIndex);
-            saveToLocalStorage('questionsToRepeat', Array.from(questionsToRepeat));
-            saveToLocalStorage('isInRepeatMode', isInRepeatMode);
-            saveToLocalStorage('incorrectAttempts', incorrectAttempts);
-        };
-    }, [lessons, currentLesson, currentQuestionIndex, questionsToRepeat, isInRepeatMode, incorrectAttempts]);
 
     const handleExtendTime = () => {
         if (canExtendTime) {

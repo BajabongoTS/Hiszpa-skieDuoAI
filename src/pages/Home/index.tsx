@@ -1,11 +1,11 @@
 import { Box, VStack, Heading, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText, useColorModeValue, Table, Thead, Tbody, Tr, Th, Td, Progress, Text, HStack, Icon } from '@chakra-ui/react';
-import { getCookie } from '../utils/cookies';
-import type { Lesson, TestResult } from '../types';
+import { getCookie } from '../../utils/cookies';
+import type { Lesson, TestResult } from '../../types';
 import { FaTrophy, FaGraduationCap, FaClock, FaCalendarCheck } from 'react-icons/fa';
 
 const Home = () => {
-    const lessonsData = getCookie('lessons') || [];
-    const testResults = getCookie('testResults') || [];
+    const lessonsData: Lesson[] = getCookie('lessons') || [];
+    const testResults: TestResult[] = getCookie('testResults') || [];
     const bgColor = useColorModeValue('white', 'gray.700');
     const borderColor = useColorModeValue('gray.200', 'gray.600');
 
@@ -18,19 +18,19 @@ const Home = () => {
 
         // Calculate average score from test results
         const averageScore = testResults.length > 0
-            ? Math.round(testResults.reduce((acc, result) => 
+            ? Math.round(testResults.reduce((acc: number, result: TestResult) => 
                 acc + (result.correctAnswers / result.totalQuestions) * 100, 0) / testResults.length)
             : 0;
 
         // Calculate total learning time
-        const totalTime = testResults.reduce((acc, result) => acc + result.timeSpent, 0);
+        const totalTime = testResults.reduce((acc: number, result: TestResult) => acc + result.timeSpent, 0);
 
         // Get best scores
         const bestScores = lessonsData
             .filter((lesson: Lesson) => lesson.bestScore !== undefined)
             .map((lesson: Lesson) => lesson.bestScore!);
         const averageBestScore = bestScores.length > 0
-            ? Math.round(bestScores.reduce((acc, score) => acc + score, 0) / bestScores.length)
+            ? Math.round(bestScores.reduce((acc: number, score: number) => acc + score, 0) / bestScores.length)
             : 0;
 
         return {
@@ -122,8 +122,8 @@ const Home = () => {
                                     </Tr>
                                 </Thead>
                                 <Tbody>
-                                    {testResults.slice(0, 3).map((result, index) => {
-                                        const lesson = lessonsData.find(l => l.title === result.lessonTitle);
+                                    {testResults.slice(0, 3).map((result: TestResult, index: number) => {
+                                        const lesson = lessonsData.find((l: Lesson) => l.title === result.lessonTitle);
                                         return (
                                             <Tr key={index}>
                                                 <Td>{result.lessonTitle}</Td>
