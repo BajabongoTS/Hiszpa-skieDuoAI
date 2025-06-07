@@ -5,7 +5,7 @@ import { resolve } from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './',
+  base: '/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
@@ -36,6 +36,7 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    host: true
+    host: true,
+    open: true
   }
 })

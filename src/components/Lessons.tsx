@@ -27,7 +27,7 @@ import {
 } from '@chakra-ui/react';
 import { FaArrowLeft, FaChartBar, FaCheck, FaRedo, FaClock } from 'react-icons/fa';
 import { motion } from 'framer-motion';
-import { setCookie, getCookie } from '../utils/cookies';
+import { setCookie, getCookie, removeCookie } from '../utils/cookies';
 import type { Question, Lesson } from '../types';
 import { lessonsData } from '../data/lessonsData';
 import TestStats from './TestStats';
@@ -89,17 +89,29 @@ const Lessons = () => {
 
     // Save lessons state to cookies whenever it changes
     useEffect(() => {
-        setCookie('lessons', lessons);
+        if (lessons) {
+            const progressData = lessons.map(lesson => ({
+                id: lesson.id,
+                progress: lesson.progress,
+                bestScore: lesson.bestScore,
+                lastCompleted: lesson.lastCompleted
+            }));
+            setCookie('lessonsProgress', progressData);
+        }
     }, [lessons]);
 
-    // Save current lesson state
+    // Load saved lesson state when component mounts
     useEffect(() => {
-        if (currentLesson) {
-            setCookie('currentLesson', currentLesson);
-            setCookie('currentQuestionIndex', currentQuestionIndex);
-            setCookie('incorrectAttempts', incorrectAttempts);
+        const savedCurrentLesson = getCookie('currentLesson');
+        const savedQuestionIndex = getCookie('currentQuestionIndex');
+        const savedIncorrectAttempts = getCookie('incorrectAttempts');
+
+        if (savedCurrentLesson) {
+            setCurrentLesson(savedCurrentLesson);
+            setCurrentQuestionIndex(savedQuestionIndex || 0);
+            setIncorrectAttempts(savedIncorrectAttempts || {});
         }
-    }, [currentLesson, currentQuestionIndex, incorrectAttempts]);
+    }, []);
 
     // Save last test result to cookies whenever it changes
     useEffect(() => {
@@ -141,10 +153,20 @@ const Lessons = () => {
 
     // Start lesson function
     const startLesson = (lesson: Lesson) => {
+        // Clear previous lesson state
+        removeCookie('currentLesson');
+        removeCookie('currentQuestionIndex');
+        removeCookie('incorrectAttempts');
+        
         setCurrentLesson(lesson);
         setCurrentQuestionIndex(0);
         resetQuestion();
         setTestStartTime(new Date());
+        
+        // Save initial lesson state
+        setCookie('currentLesson', lesson);
+        setCookie('currentQuestionIndex', 0);
+        setCookie('incorrectAttempts', {});
     };
 
     // Reset question state
@@ -162,7 +184,9 @@ const Lessons = () => {
         if (!currentLesson) return;
 
         if (currentQuestionIndex < currentLesson.questions.length - 1) {
-            setCurrentQuestionIndex(prev => prev + 1);
+            const nextIndex = currentQuestionIndex + 1;
+            setCurrentQuestionIndex(nextIndex);
+            setCookie('currentQuestionIndex', nextIndex);
             resetQuestion();
         } else {
             // Handle test completion
@@ -180,23 +204,32 @@ const Lessons = () => {
                     ? {
                         ...lesson,
                         progress: Math.max(lesson.progress || 0, score),
-                        bestScore: Math.max(lesson.bestScore || 0, score)
+                        bestScore: Math.max(lesson.bestScore || 0, score),
+                        lastCompleted: new Date()
                     }
                     : lesson
             );
             
             // Save progress
             setLessons(updatedLessons);
-            setCookie('lessonsProgress', JSON.stringify(updatedLessons));
             
             // Show results
-            setLastTestResult({
+            const testResult = {
+                lessonId: currentLesson.id,
                 score,
                 duration: testDuration,
                 incorrectAttempts: Object.keys(incorrectAttempts).length,
-                totalQuestions
-            });
+                totalQuestions,
+                completedAt: new Date()
+            };
+            setLastTestResult(testResult);
+            setCookie('lastTestResult', testResult);
             onOpen();
+            
+            // Clear current lesson state
+            removeCookie('currentLesson');
+            removeCookie('currentQuestionIndex');
+            removeCookie('incorrectAttempts');
             
             // Reset state
             setCurrentLesson(null);
