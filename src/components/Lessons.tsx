@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Button,
@@ -29,27 +29,12 @@ import { motion } from 'framer-motion';
 import { FaArrowLeft, FaClock, FaChartBar, FaCheck, FaRedo } from 'react-icons/fa';
 import { setCookie, getCookie } from '../utils/cookies';
 import type { Question, Lesson, TestResult } from '../types';
-import { lessonsData } from '../data/lessonsData';
+import { normalizeSpanishText } from '../utils/textNormalization';
 import TestStats from '../components/TestStats';
-import React from 'react';
 
 const MotionBox = motion(Box);
 
-// Helper function to normalize Spanish text for comparison
-const normalizeSpanishText = (text: string): string => {
-    return text
-        .toLowerCase()
-        // Remove articles
-        .replace(/^(el|la|los|las)\s+/i, '')
-        // Replace diacritical marks
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        // Remove extra whitespace
-        .trim();
-};
-
-// Add a shuffle function to randomize array order
-const shuffleArray = <T>(array: T[]): T[] => {
+const shuffleArray = <T extends unknown>(array: T[]): T[] => {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -58,35 +43,31 @@ const shuffleArray = <T>(array: T[]): T[] => {
     return shuffled;
 };
 
-const Lessons = () => {
-    // Initialize state from cookies or default values
+const Lessons: React.FC = () => {
     const [lessons, setLessons] = useState<Lesson[]>(() => {
         const savedLessons = getCookie('lessons');
-        // If we have saved lessons, use them, otherwise initialize with default data
         if (savedLessons) {
             return savedLessons.map((savedLesson: Lesson) => ({
                 ...savedLesson,
-                // Convert date strings back to Date objects
                 lastCompleted: savedLesson.lastCompleted ? new Date(savedLesson.lastCompleted) : undefined,
                 lastAttemptDate: savedLesson.lastAttemptDate ? new Date(savedLesson.lastAttemptDate) : null
             }));
         }
-        return lessonsData;
+        return [];
     });
     
     const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [showExplanation, setShowExplanation] = useState(false);
-    const [textInput, setTextInput] = useState('');
+    const [isAnsweredCorrectly, setIsAnsweredCorrectly] = useState(false);
     const [matchedPairs, setMatchedPairs] = useState<Record<string, string>>({});
     const [selectedSpanish, setSelectedSpanish] = useState<string | null>(null);
-    const [isAnsweredCorrectly, setIsAnsweredCorrectly] = useState(false);
+    const [textInput, setTextInput] = useState('');
     const [timeLeft, setTimeLeft] = useState(30);
     const [timerActive, setTimerActive] = useState(true);
     const [canExtendTime, setCanExtendTime] = useState(true);
     const [questionsToRepeat, setQuestionsToRepeat] = useState<Set<number>>(new Set());
     const [isInRepeatMode, setIsInRepeatMode] = useState(false);
-    const toast = useToast();
     const [incorrectAttempts, setIncorrectAttempts] = useState<Record<string, number>>({});
     const [testStartTime, setTestStartTime] = useState<Date | null>(null);
     const [lastTestResult, setLastTestResult] = useState<TestResult | null>(() => {
@@ -95,16 +76,12 @@ const Lessons = () => {
     });
     const { isOpen, onOpen, onClose } = useDisclosure();
 
-    // Add state for shuffled pairs
-    const [shuffledSpanish, setShuffledSpanish] = useState<string[]>([]);
-    const [shuffledPolish, setShuffledPolish] = useState<string[]>([]);
+    const toast = useToast();
 
-    // Save lessons state to cookies whenever it changes
     useEffect(() => {
         setCookie('lessons', lessons);
     }, [lessons]);
 
-    // Save current lesson state
     useEffect(() => {
         if (currentLesson) {
             setCookie('currentLesson', currentLesson);
@@ -112,10 +89,19 @@ const Lessons = () => {
             setCookie('questionsToRepeat', Array.from(questionsToRepeat));
             setCookie('isInRepeatMode', isInRepeatMode);
             setCookie('incorrectAttempts', incorrectAttempts);
+            setTimeLeft(30);
+            setTimerActive(true);
+            setCanExtendTime(true);
+            setQuestionsToRepeat(new Set());
+            setIsInRepeatMode(false);
+            setCurrentQuestionIndex(0);
+            setIncorrectAttempts({});
+            if (!testStartTime) {
+                setTestStartTime(new Date());
+            }
         }
     }, [currentLesson, currentQuestionIndex, questionsToRepeat, isInRepeatMode, incorrectAttempts]);
 
-    // Save last test result to cookies whenever it changes
     useEffect(() => {
         if (lastTestResult) {
             setCookie('lastTestResult', lastTestResult);
@@ -138,7 +124,6 @@ const Lessons = () => {
         }
     }, [timeLeft]);
 
-    // Update the startLesson function to include resetting shuffled arrays
     const startLesson = (lesson: Lesson) => {
         const lessonToStart = lessons.find(l => l.id === lesson.id) || lesson;
         setCurrentLesson(lessonToStart);
@@ -153,22 +138,10 @@ const Lessons = () => {
         setCanExtendTime(true);
         setQuestionsToRepeat(new Set());
         setIsInRepeatMode(false);
+        setCurrentQuestionIndex(0);
         setIncorrectAttempts({});
         setTestStartTime(new Date());
-        setShuffledSpanish([]);
-        setShuffledPolish([]);
     };
-
-    // Add useEffect to shuffle pairs when question changes
-    useEffect(() => {
-        if (currentLesson && currentLesson.questions[currentQuestionIndex] && currentLesson.questions[currentQuestionIndex].type === 'matching' && currentLesson.questions[currentQuestionIndex].matchingPairs) {
-            const pairs = currentLesson.questions[currentQuestionIndex].matchingPairs;
-            setShuffledSpanish(shuffleArray(pairs.map(p => p.spanish)));
-            setShuffledPolish(shuffleArray(pairs.map(p => p.polish)));
-            setMatchedPairs({});
-            setSelectedSpanish(null);
-        }
-    }, [currentQuestionIndex, currentLesson]);
 
     const addToQuestionsToRepeat = (questionIndex: number) => {
         setQuestionsToRepeat((prev: Set<number>) => new Set([...Array.from(prev), questionIndex]));
@@ -212,23 +185,58 @@ const Lessons = () => {
         }));
     };
 
+    const handleMatchingClick = (value: string, isSpanish: boolean) => {
+        if (!currentLesson || isAnsweredCorrectly) return;
+        
+        if (isSpanish) {
+            setSelectedSpanish(value);
+        } else if (selectedSpanish) {
+            const currentQuestion = currentLesson.questions[currentQuestionIndex];
+            const isCorrectMatch = currentQuestion.matchingPairs?.some(
+                pair => pair.spanish === selectedSpanish && pair.polish === value
+            );
+
+            if (isCorrectMatch) {
+                const newPairs = { ...matchedPairs, [selectedSpanish]: value };
+                setMatchedPairs(newPairs);
+                setSelectedSpanish(null);
+
+                if (currentQuestion.matchingPairs && 
+                    Object.keys(newPairs).length === currentQuestion.matchingPairs.length) {
+                    handleAnswer('all-matched');
+                }
+            } else {
+                toast({
+                    title: "Niepoprawne dopasowanie",
+                    status: "error",
+                    duration: 1000,
+                    isClosable: true,
+                });
+                setSelectedSpanish(null);
+            }
+        }
+    };
+
     const finishLesson = (lesson: Lesson) => {
         if (!testStartTime) return;
 
-        const timeSpent = Math.floor((new Date().getTime() - testStartTime.getTime()) / 1000);
-        const correctAnswers = lesson.questions.length - Object.keys(incorrectAttempts).length;
-        const score = Math.round((correctAnswers / lesson.questions.length) * 100);
+        const timeSpent = Math.round((new Date().getTime() - testStartTime.getTime()) / 1000);
+        const totalQuestions = lesson.questions.length;
+        const correctAnswers = totalQuestions - questionsToRepeat.size;
+        const score = Math.round((correctAnswers / totalQuestions) * 100);
 
         const result: TestResult = {
+            lessonId: lesson.id,
             lessonTitle: lesson.title,
-            totalQuestions: lesson.questions.length,
+            score,
+            totalQuestions,
             correctAnswers,
-            incorrectAttempts,
+            incorrectAnswers: questionsToRepeat.size,
             timeSpent,
-            completedAt: new Date()
+            completedAt: new Date(),
+            incorrectAttempts
         };
 
-        // Update lesson progress and best score
         setLessons(prevLessons => {
             return prevLessons.map(l => {
                 if (l.id === lesson.id) {
@@ -244,19 +252,17 @@ const Lessons = () => {
             });
         });
 
-        // Save test results
         const existingResults = getCookie('testResults') || [];
         const updatedResults = [result, ...existingResults];
         setCookie('testResults', updatedResults);
 
-        // Update today's lesson count
         const today = new Date().toDateString();
         const todayKey = `todayLessons_${today}`;
         const todayLessons = getCookie(todayKey) || 0;
         setCookie(todayKey, todayLessons + 1);
 
         setLastTestResult(result);
-        setCurrentLesson(null); // Reset current lesson
+        setCurrentLesson(null);
         onOpen();
     };
 
@@ -323,17 +329,13 @@ const Lessons = () => {
 
         const totalQuestions = currentLesson!.questions.length;
         
-        // If we're in repeat mode
         if (isInRepeatMode) {
-            // Find next question to repeat
             const repeatArray = Array.from(questionsToRepeat);
             const currentRepeatIndex = repeatArray.indexOf(currentQuestionIndex);
             
             if (currentRepeatIndex < repeatArray.length - 1) {
-                // Move to next repeat question
                 setCurrentQuestionIndex(repeatArray[currentRepeatIndex + 1]);
             } else if (questionsToRepeat.size > 0) {
-                // If we've completed one round of repeats but still have questions, start over
                 setCurrentQuestionIndex(repeatArray[0]);
                 toast({
                     title: "Kolejna runda powtórek!",
@@ -343,7 +345,6 @@ const Lessons = () => {
                     isClosable: true,
                 });
             } else {
-                // All questions answered correctly, finish lesson
                 const updatedLessons = lessons.map(l => {
                     if (l.id === currentLesson!.id) {
                         return { ...l, progress: 100 };
@@ -357,12 +358,9 @@ const Lessons = () => {
             return;
         }
 
-        // Normal mode progression
         if (currentQuestionIndex + 1 < totalQuestions) {
-            // Move to next question in normal sequence
             setCurrentQuestionIndex((prev: number) => prev + 1);
         } else if (questionsToRepeat.size > 0) {
-            // Switch to repeat mode
             setIsInRepeatMode(true);
             setCurrentQuestionIndex(Array.from(questionsToRepeat)[0]);
             toast({
@@ -373,7 +371,6 @@ const Lessons = () => {
                 isClosable: true,
             });
         } else {
-            // No questions to repeat, finish lesson
             const updatedLessons = lessons.map(l => {
                 if (l.id === currentLesson!.id) {
                     return { ...l, progress: 100 };
@@ -400,14 +397,13 @@ const Lessons = () => {
         }
     };
 
-    // Update the matching UI rendering
     const renderMatchingQuestion = (question: Question) => {
         if (!question.matchingPairs) return null;
 
-        // Shuffle pairs for display
+        const pairs = question.matchingPairs;
         const shuffledPairs = React.useMemo(() => 
-            shuffleArray(question.matchingPairs), [question.matchingPairs]);
-        
+            shuffleArray([...pairs]), [pairs]);
+
         return (
             <VStack spacing={6} w="100%">
                 <Grid templateColumns="1fr auto 1fr" gap={4} w="100%" alignItems="start">
@@ -419,10 +415,7 @@ const Lessons = () => {
                                 size="md"
                                 variant={selectedSpanish === pair.spanish ? 'solid' : 'outline'}
                                 colorScheme={incorrectAttempts[pair.spanish] ? 'red' : 'teal'}
-                                onClick={() => {
-                                    if (matchedPairs[pair.spanish]) return;
-                                    setSelectedSpanish(pair.spanish);
-                                }}
+                                onClick={() => handleMatchingClick(pair.spanish, true)}
                                 isDisabled={matchedPairs[pair.spanish] !== undefined || isAnsweredCorrectly}
                                 w="100%"
                                 justifyContent="flex-start"
@@ -440,41 +433,13 @@ const Lessons = () => {
 
                     <VStack spacing={4} align="stretch">
                         <Heading size="sm" textAlign="center">Polski</Heading>
-                        {/* Shuffle Polish words independently */}
                         {shuffleArray([...shuffledPairs]).map(pair => (
                             <Button
                                 key={pair.polish}
                                 size="md"
                                 variant="outline"
                                 colorScheme={incorrectAttempts[pair.polish] ? 'red' : 'teal'}
-                                onClick={() => {
-                                    if (!selectedSpanish || Object.values(matchedPairs).includes(pair.polish)) return;
-                                    
-                                    const correctPair = question.matchingPairs?.find(
-                                        p => p.spanish === selectedSpanish && p.polish === pair.polish
-                                    );
-
-                                    if (correctPair) {
-                                        setMatchedPairs(prev => ({ ...prev, [selectedSpanish]: pair.polish }));
-                                        setSelectedSpanish(null);
-
-                                        // Check if all pairs are matched
-                                        if (Object.keys(matchedPairs).length + 1 === question.matchingPairs?.length) {
-                                            setIsAnsweredCorrectly(true);
-                                            setShowExplanation(true);
-                                        }
-                                    } else {
-                                        handleIncorrectAnswer(question.question);
-                                        setSelectedSpanish(null);
-                                        toast({
-                                            title: "Niepoprawne dopasowanie",
-                                            description: "Spróbuj jeszcze raz!",
-                                            status: "error",
-                                            duration: 2000,
-                                            isClosable: true
-                                        });
-                                    }
-                                }}
+                                onClick={() => handleMatchingClick(pair.polish, false)}
                                 isDisabled={Object.values(matchedPairs).includes(pair.polish) || isAnsweredCorrectly}
                                 w="100%"
                                 justifyContent="flex-start"
@@ -557,7 +522,6 @@ const Lessons = () => {
         }
     };
 
-    // Add type for event handler
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setTextInput(e.target.value);
     };

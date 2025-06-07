@@ -1,9 +1,11 @@
+export type QuestionType = 'multiple-choice' | 'text-input' | 'matching';
+
 export interface Question {
-    type: 'multiple-choice' | 'text-input' | 'matching';
+    type: QuestionType;
     question: string;
     correctAnswer: string;
     options?: string[];
-    matchingPairs?: { spanish: string; polish: string }[];
+    matchingPairs?: Array<{ spanish: string; polish: string }>;
     explanation?: string;
 }
 
@@ -13,16 +15,19 @@ export interface Lesson {
     description: string;
     progress: number;
     questions: Question[];
-    lastCompleted?: Date;
     bestScore?: number;
+    lastCompleted?: Date;
     lastAttemptDate?: Date | null;
 }
 
 export interface TestResult {
+    lessonId: number;
     lessonTitle: string;
+    score: number;
     totalQuestions: number;
     correctAnswers: number;
-    incorrectAttempts: Record<string, number>;
+    incorrectAnswers: number;
     timeSpent: number;
     completedAt: Date;
+    incorrectAttempts: Record<string, number>;
 } 
