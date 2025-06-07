@@ -36,15 +36,15 @@ function App() {
   return (
     <ChakraProvider theme={theme}>
       <Router>
-        <Box minH="100vh" bg="gray.50" _dark={{ bg: 'gray.800' }}>
-          <Navbar />
+      <Box minH="100vh" bg="gray.50" _dark={{ bg: 'gray.800' }}>
+        <Navbar />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/lessons" element={<LessonsPage />} />
             <Route path="/flashcards" element={<FlashcardsPage />} />
             <Route path="/statistics" element={<StatisticsPage />} />
           </Routes>
-        </Box>
+      </Box>
       </Router>
     </ChakraProvider>
   );

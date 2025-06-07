@@ -29,7 +29,7 @@ const theme = extendTheme({
 });
 
 function App() {
-  return (
+return (
     <ChakraProvider theme={theme}>
       <Box minH="100vh" bg="gray.50" _dark={{ bg: 'gray.800' }}>
         <Navbar />

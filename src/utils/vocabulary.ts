@@ -13,13 +13,30 @@ export const parseVocabulary = (data: string): Array<{ spanish: string; polish: 
     return data.split('\n')
         .filter(line => line.trim())
         .map(line => {
-            const [spanish, polish] = line.split(' - ');
+            // Handle both ' - ' and ':' as separators
+            const parts = line.includes(' - ') ? line.split(' - ') : line.split(':');
+            if (parts.length !== 2) return null;
+            
             return { 
-                spanish: spanish.trim(), 
-                polish: polish.trim() 
+                spanish: parts[0].trim(), 
+                polish: parts[1].trim() 
             };
-        });
+        })
+        .filter((item): item is { spanish: string; polish: string } => item !== null);
 }; 
+
+// Helper function to normalize Spanish text for comparison
+const normalizeSpanishText = (text: string): string => {
+    return text
+        .toLowerCase()
+        // Remove articles
+        .replace(/^(el|la|los|las)\s+/i, '')
+        // Replace diacritical marks
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        // Remove extra whitespace
+        .trim();
+};
 
 export const createQuestionsFromVocab = (vocabulary: Array<{ spanish: string; polish: string }>): Question[] => {
     const questions: Question[] = [];
@@ -49,7 +66,7 @@ export const createQuestionsFromVocab = (vocabulary: Array<{ spanish: string; po
         questions.push({
             type: 'text-input',
             question: `Jak powiedzieć "${item.polish}" po hiszpańsku?`,
-            correctAnswer: item.spanish.toLowerCase(),
+            correctAnswer: normalizeSpanishText(item.spanish),
             explanation: `${item.polish} to po hiszpańsku ${item.spanish}`
         });
     });
@@ -66,27 +83,6 @@ export const createQuestionsFromVocab = (vocabulary: Array<{ spanish: string; po
             });
         }
     }
-
-    // Create "a" article questions for words starting with "a"
-    vocabulary.forEach(item => {
-        const spanishWord = item.spanish.toLowerCase();
-        if (spanishWord.startsWith('la ') && spanishWord.split(' ')[1].startsWith('a')) {
-            questions.push({
-                type: 'text-input',
-                question: `Wpisz rodzajnik dla słowa "${spanishWord.split(' ')[1]}"`,
-                correctAnswer: 'la',
-                explanation: `Słowo "${spanishWord.split(' ')[1]}" używa rodzajnika "la", ponieważ jest rodzaju żeńskiego.`
-            });
-
-            questions.push({
-                type: 'multiple-choice',
-                question: `Jaki jest poprawny rodzajnik dla słowa "${spanishWord.split(' ')[1]}"?`,
-                options: ['la', 'el', 'los', 'las'],
-                correctAnswer: 'la',
-                explanation: `Słowo "${spanishWord.split(' ')[1]}" używa rodzajnika "la", ponieważ jest rodzaju żeńskiego.`
-            });
-        }
-    });
 
     return questions.sort(() => Math.random() - 0.5);
 }; 

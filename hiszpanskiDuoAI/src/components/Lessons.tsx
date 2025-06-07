@@ -164,6 +164,21 @@ const lessonsData: Lesson[] = [
                 correctAnswer: "all-matched"
             }
         ]
+    },
+    {
+        id: 4,
+        title: "Liczby 11-20",
+        description: "Podstawowe liczby w języku hiszpańskim",
+        progress: 0,
+        questions: [
+            {
+                type: 'multiple-choice',
+                question: "Który kolor to 'rojo'?",
+                options: ["Niebieski", "Czerwony", "Zielony", "Żółty"],
+                correctAnswer: "Czerwony",
+                explanation: "Rojo to podstawowy kolor w hiszpańskim, oznaczający czerwony."
+            }
+        ]
     }
 ];
 

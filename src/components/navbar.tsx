@@ -27,17 +27,17 @@ const Navbar = () => {
     >
       <Flex align="center" justify="space-between" maxW="1200px" mx="auto">
         <Flex align="center">
-          <Heading 
-            size="md" 
-            color="white" 
-            cursor="pointer"
-            _hover={{ opacity: 0.8 }}
-            transition="opacity 0.2s"
-            onClick={handleTitleClick}
+        <Heading 
+          size="md" 
+          color="white" 
+          cursor="pointer"
+          _hover={{ opacity: 0.8 }}
+          transition="opacity 0.2s"
+          onClick={handleTitleClick}
             mr={8}
-          >
-            HiszpańskiDuo
-          </Heading>
+        >
+          HiszpańskiDuo
+        </Heading>
 
           <HStack spacing={4} display={{ base: 'none', md: 'flex' }}>
             <Button

@@ -38,6 +38,26 @@ las lechugas - sałaty
 las patatas fritas - frytki
 `;
 
+export const aWordsVocab = `
+el agua - woda
+el amor - miłość
+el aire - powietrze
+el amigo - przyjaciel
+la amiga - przyjaciółka
+el árbol - drzewo
+el avión - samolot
+`;
+
+export const aPeopleVocab = `
+el abogado - adwokat
+el actor - aktor
+la actriz - aktorka
+el arquitecto - architekt
+el artista - artysta
+el alumno - uczeń
+el autor - autor
+`;
+
 export const excursionVocab = `
 la gorra - czapka z daszkiem
 las botas - buty trekkingowe
@@ -54,23 +74,15 @@ el chubasquero - kurtka przeciwdeszczowa
 la cámara de fotos - aparat fotograficzny
 `;
 
-export const aWordsVocab = `
-la casa - dom
-la playa - plaża
-la mesa - stół
-la cama - łóżko
-la silla - krzesło
-la ventana - okno
-la puerta - drzwi
-la cocina - kuchnia
-la sala - salon
-la planta - roślina
-la taza - filiżanka
-la lámpara - lampa
-la alfombra - dywan
-la almohada - poduszka
-la alarma - alarm
-la agua - woda
-la abeja - pszczoła
-la araña - pająk
+export const numbersVocab = `
+once - jedenaście
+doce - dwanaście
+trece - trzynaście
+catorce - czternaście
+quince - piętnaście
+dieciséis - szesnaście
+diecisiete - siedemnaście
+dieciocho - osiemnaście
+diecinueve - dziewiętnaście
+veinte - dwadzieścia
 `; 

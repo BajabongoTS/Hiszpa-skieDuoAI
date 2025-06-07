@@ -4,10 +4,25 @@ import { useState, useEffect } from 'react';
 import { FaCheck, FaChartBar, FaClock, FaArrowLeft } from 'react-icons/fa';
 import TestStats from './TestStats';
 import type { TestResult } from './TestStats';
+import FlashcardMode from './FlashcardMode';
+import { useNavigate } from 'react-router-dom';
 import { parseVocabulary, createQuestionsFromVocab } from '../utils/vocabulary';
-import { bodyPartsVocab, foodVocab, excursionVocab, aWordsVocab } from '../data/vocabulary';
+import { bodyPartsVocab, foodVocab, excursionVocab, aWordsVocab, aPeopleVocab, numbersVocab } from '../data/vocabulary';
 
 const MotionBox = motion(Box);
+
+// Helper function to normalize Spanish text for comparison
+const normalizeSpanishText = (text: string): string => {
+    return text
+        .toLowerCase()
+        // Remove articles
+        .replace(/^(el|la|los|las)\s+/i, '')
+        // Replace diacritical marks
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        // Remove extra whitespace
+        .trim();
+};
 
 type QuestionType = 'multiple-choice' | 'text-input' | 'matching' | 'flashcard';
 
@@ -57,10 +72,26 @@ const lessonsData: Lesson[] = [
     },
     {
         id: 4,
-        title: "Słowa na 'a'",
-        description: "Naucz się słów rodzaju żeńskiego zaczynających się na 'a'",
+        title: "Liczby 11-20",
+        description: "Podstawowe liczby w języku hiszpańskim",
+        progress: 0,
+        vocabulary: parseVocabulary(numbersVocab),
+        questions: []
+    },
+    {
+        id: 5,
+        title: "Słowa na 'A'",
+        description: "Poznaj popularne hiszpańskie słowa zaczynające się na 'a'",
         progress: 0,
         vocabulary: parseVocabulary(aWordsVocab),
+        questions: []
+    },
+    {
+        id: 6,
+        title: "Zawody i osoby na 'A'",
+        description: "Naucz się nazw zawodów i osób zaczynających się na 'a'",
+        progress: 0,
+        vocabulary: parseVocabulary(aPeopleVocab),
         questions: []
     }
 ];
@@ -121,6 +152,7 @@ const Lessons = () => {
     const [testStartTime, setTestStartTime] = useState<Date | null>(null);
     const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
     const { isOpen, onOpen, onClose } = useDisclosure();
+    const navigate = useNavigate();
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
@@ -245,7 +277,7 @@ const Lessons = () => {
         setTimerActive(false);
         
         addToQuestionsToRepeat(currentQuestionIndex);
-
+        
         toast({
             title: "Nie szkodzi!",
             description: `Prawidłowa odpowiedź to: ${
@@ -299,7 +331,7 @@ const Lessons = () => {
                 isCorrect = currentQuestion.correctAnswer === answer;
                 break;
             case 'text-input':
-                isCorrect = currentQuestion.correctAnswer.toLowerCase() === answer.toLowerCase();
+                isCorrect = normalizeSpanishText(currentQuestion.correctAnswer) === normalizeSpanishText(answer);
                 break;
             case 'matching':
                 isCorrect = Object.keys(matchedPairs).length === currentQuestion.matchingPairs!.length &&
@@ -339,11 +371,11 @@ const Lessons = () => {
     };
 
     const handleContinue = () => {
-        setShowExplanation(false);
-        setTextInput('');
-        setMatchedPairs({});
-        setSelectedSpanish(null);
-        setIsAnsweredCorrectly(false);
+            setShowExplanation(false);
+            setTextInput('');
+            setMatchedPairs({});
+            setSelectedSpanish(null);
+            setIsAnsweredCorrectly(false);
         setTimerActive(true);
         setTimeLeft(30);
         setCanExtendTime(true);
