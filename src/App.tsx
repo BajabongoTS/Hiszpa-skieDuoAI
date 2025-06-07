@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import LessonsPage from './pages/Lessons';
 import FlashcardsPage from './pages/Flashcards';
 import StatisticsPage from './pages/Statistics';
+import NotFound from './pages/NotFound';
 
 const theme = extendTheme({
   config: {
@@ -35,16 +36,17 @@ const theme = extendTheme({
 function App() {
   return (
     <ChakraProvider theme={theme}>
-      <Router>
-      <Box minH="100vh" bg="gray.50" _dark={{ bg: 'gray.800' }}>
-        <Navbar />
+      <Router basename="/">
+        <Box minH="100vh" bg="gray.50" _dark={{ bg: 'gray.800' }}>
+          <Navbar />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/lessons" element={<LessonsPage />} />
             <Route path="/flashcards" element={<FlashcardsPage />} />
             <Route path="/statistics" element={<StatisticsPage />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
-      </Box>
+        </Box>
       </Router>
     </ChakraProvider>
   );
