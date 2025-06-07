@@ -31,6 +31,7 @@ import { setCookie, getCookie } from '../utils/cookies';
 import type { Question, Lesson, TestResult } from '../types';
 import { normalizeSpanishText } from '../utils/textNormalization';
 import TestStats from '../components/TestStats';
+import { lessonsData } from '../data/lessonsData';
 
 const MotionBox = motion(Box);
 
@@ -53,7 +54,7 @@ const Lessons: React.FC = () => {
                 lastAttemptDate: savedLesson.lastAttemptDate ? new Date(savedLesson.lastAttemptDate) : null
             }));
         }
-        return [];
+        return lessonsData;
     });
     
     const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
