@@ -403,104 +403,116 @@ const Lessons = () => {
         if (!question.matchingPairs) return null;
 
         return (
-            <HStack spacing={8} align="stretch" justify="center">
-                {/* Spanish words column */}
-                <VStack spacing={4} minW="200px">
-                    {shuffledSpanish.map(spanish => (
-                        <Box
-                            key={spanish}
-                            p={4}
-                            bg={selectedSpanish === spanish ? 'teal.500' : 'white'}
-                            color={selectedSpanish === spanish ? 'white' : 'black'}
-                            borderWidth={1}
-                            borderColor={selectedSpanish === spanish ? 'teal.500' : 'gray.200'}
-                            borderRadius="md"
-                            cursor="pointer"
-                            _hover={{
-                                bg: selectedSpanish === spanish ? 'teal.600' : 'gray.50',
-                                transform: 'translateY(-2px)',
-                                boxShadow: 'md'
-                            }}
-                            transition="all 0.2s"
-                            onClick={() => {
-                                if (matchedPairs[spanish]) return;
-                                setSelectedSpanish(spanish);
-                            }}
-                            opacity={matchedPairs[spanish] ? 0.5 : 1}
-                            _dark={{
-                                bg: selectedSpanish === spanish ? 'teal.500' : 'gray.700',
-                                color: 'white',
-                                borderColor: 'gray.600',
-                                _hover: {
-                                    bg: selectedSpanish === spanish ? 'teal.600' : 'gray.600'
-                                }
-                            }}
-                        >
-                            <Text textAlign="center">{spanish}</Text>
+            <VStack spacing={6} w="100%">
+                <Box position="relative" w="100%">
+                    <Grid templateColumns="1fr auto 1fr" gap={4} w="100%" alignItems="start">
+                        <VStack spacing={4} align="stretch">
+                            <Heading size="sm" textAlign="center">Hiszpański</Heading>
+                            {question.matchingPairs!.map(pair => (
+                                <Button
+                                    key={pair.spanish}
+                                    size="md"
+                                    variant={selectedSpanish === pair.spanish ? 'solid' : 'outline'}
+                                    colorScheme={incorrectAttempts[pair.spanish] ? 'red' : 'teal'}
+                                    onClick={() => handleMatchingClick(pair.spanish, true)}
+                                    isDisabled={matchedPairs[pair.spanish] !== undefined || isAnsweredCorrectly}
+                                    w="100%"
+                                    justifyContent="flex-start"
+                                    px={4}
+                                    transition="all 0.2s"
+                                    position="relative"
+                                    zIndex="1"
+                                >
+                                    {pair.spanish}
+                                </Button>
+                            ))}
+                        </VStack>
+
+                        <Box position="relative" w="40px">
+                            <svg
+                                style={{
+                                    position: 'absolute',
+                                    top: '0',
+                                    left: '0',
+                                    width: '100%',
+                                    height: '100%',
+                                    pointerEvents: 'none'
+                                }}
+                            >
+                                {Object.entries(matchedPairs).map(([spanish, polish]) => {
+                                    const spanishIndex = question.matchingPairs!.findIndex(p => p.spanish === spanish);
+                                    const polishIndex = question.matchingPairs!.findIndex(p => p.polish === polish);
+                                    if (spanishIndex === -1 || polishIndex === -1) return null;
+
+                                    const y1 = spanishIndex * 48 + 48; // 48px is button height + spacing
+                                    const y2 = polishIndex * 48 + 48;
+
+                                    return (
+                                        <path
+                                            key={spanish}
+                                            d={`M 0,${y1} C 20,${y1} 20,${y2} 40,${y2}`}
+                                            stroke="var(--chakra-colors-teal-500)"
+                                            strokeWidth="2"
+                                            fill="none"
+                                            style={{
+                                                animation: 'drawLine 0.5s ease-in-out forwards'
+                                            }}
+                                        />
+                                    );
+                                })}
+                            </svg>
                         </Box>
-                    ))}
-                </VStack>
 
-                {/* Polish words column */}
-                <VStack spacing={4} minW="200px">
-                    {shuffledPolish.map(polish => (
-                        <Box
-                            key={polish}
-                            p={4}
-                            bg="white"
-                            borderWidth={1}
-                            borderColor="gray.200"
-                            borderRadius="md"
-                            cursor={selectedSpanish ? 'pointer' : 'default'}
-                            _hover={{
-                                bg: selectedSpanish ? 'gray.50' : 'white',
-                                transform: selectedSpanish ? 'translateY(-2px)' : 'none',
-                                boxShadow: selectedSpanish ? 'md' : 'none'
-                            }}
-                            transition="all 0.2s"
-                            onClick={() => {
-                                if (!selectedSpanish || Object.values(matchedPairs).includes(polish)) return;
-                                
-                                const correctPair = question.matchingPairs?.find(
-                                    pair => pair.spanish === selectedSpanish && pair.polish === polish
-                                );
+                        <VStack spacing={4} align="stretch">
+                            <Heading size="sm" textAlign="center">Polski</Heading>
+                            {question.matchingPairs!.map(pair => (
+                                <Button
+                                    key={pair.polish}
+                                    size="md"
+                                    variant="outline"
+                                    colorScheme={incorrectAttempts[pair.polish] ? 'red' : 'teal'}
+                                    onClick={() => handleMatchingClick(pair.polish, false)}
+                                    isDisabled={Object.values(matchedPairs).includes(pair.polish) || isAnsweredCorrectly}
+                                    w="100%"
+                                    justifyContent="flex-start"
+                                    px={4}
+                                    transition="all 0.2s"
+                                    position="relative"
+                                    zIndex="1"
+                                >
+                                    {pair.polish}
+                                </Button>
+                            ))}
+                        </VStack>
+                    </Grid>
+                </Box>
 
-                                if (correctPair) {
-                                    setMatchedPairs(prev => ({ ...prev, [selectedSpanish]: polish }));
-                                    setSelectedSpanish(null);
+                {Object.keys(matchedPairs).length > 0 && (
+                    <Box w="100%" p={4} borderWidth={1} borderRadius="md">
+                        <Heading size="sm" mb={2}>Dopasowane pary:</Heading>
+                        <VStack align="stretch" spacing={2}>
+                            {Object.entries(matchedPairs).map(([spanish, polish]) => (
+                                <HStack key={spanish} justify="center" p={2} bg="teal.50" borderRadius="md" _dark={{ bg: 'teal.900' }}>
+                                    <Text fontWeight="medium">{spanish}</Text>
+                                    <Text>→</Text>
+                                    <Text fontWeight="medium">{polish}</Text>
+                                </HStack>
+                            ))}
+                        </VStack>
+                    </Box>
+                )}
 
-                                    // Check if all pairs are matched
-                                    if (Object.keys(matchedPairs).length + 1 === question.matchingPairs?.length) {
-                                        setIsAnsweredCorrectly(true);
-                                        setShowExplanation(true);
-                                    }
-                                } else {
-                                    handleIncorrectAnswer(question.question);
-                                    setSelectedSpanish(null);
-                                    toast({
-                                        title: "Niepoprawne dopasowanie",
-                                        description: "Spróbuj jeszcze raz!",
-                                        status: "error",
-                                        duration: 2000,
-                                        isClosable: true
-                                    });
-                                }
-                            }}
-                            opacity={Object.values(matchedPairs).includes(polish) ? 0.5 : 1}
-                            _dark={{
-                                bg: 'gray.700',
-                                color: 'white',
-                                borderColor: 'gray.600',
-                                _hover: {
-                                    bg: selectedSpanish ? 'gray.600' : 'gray.700'
-                                }
-                            }}
-                        >
-                            <Text textAlign="center">{polish}</Text>
-                        </Box>
-                    ))}
-                </VStack>
-            </HStack>
+                <Button
+                    onClick={handleDontKnow}
+                    variant="ghost"
+                    colorScheme="gray"
+                    size="md"
+                    mt={2}
+                    isDisabled={isAnsweredCorrectly}
+                >
+                    Nie wiem
+                </Button>
+            </VStack>
         );
     };
 
