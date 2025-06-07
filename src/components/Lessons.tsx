@@ -275,6 +275,14 @@ const Lessons = () => {
             completedAt: new Date()
         };
 
+        // Save test result to local storage
+        const existingResults = loadFromLocalStorage<TestResult[]>('testResults', []);
+        saveToLocalStorage('testResults', [result, ...existingResults]);
+
+        // Update today's lesson count
+        const todayLessons = loadFromLocalStorage<number>('todayLessons', 0);
+        saveToLocalStorage('todayLessons', todayLessons + 1);
+
         setLastTestResult(result);
         clearSavedProgress();
         onOpen();
