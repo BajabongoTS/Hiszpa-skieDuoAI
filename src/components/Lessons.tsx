@@ -153,7 +153,7 @@ const Lessons = () => {
     }, [lastTestResult]);
 
     useEffect(() => {
-        let timer: NodeJS.Timeout;
+        let timer: ReturnType<typeof setTimeout>;
         if (timeLeft > 0 && currentLesson && !showExplanation && !isAnsweredCorrectly) {
             timer = setInterval(() => {
                 setTimeLeft(prev => prev - 1);
