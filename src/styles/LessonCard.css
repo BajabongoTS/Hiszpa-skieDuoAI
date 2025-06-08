@@ -1,0 +1,109 @@
+.lesson-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.lesson-card:hover:not(.locked) {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.lesson-number {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: var(--duo-green);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.lesson-title {
+    color: var(--text);
+    font-size: 1.5rem;
+    margin: 0 0 0.5rem 0;
+    font-weight: 700;
+}
+
+.lesson-description {
+    color: var(--text-light);
+    font-size: 1rem;
+    margin: 0 0 1.5rem 0;
+    line-height: 1.4;
+}
+
+.lesson-button {
+    background: var(--duo-green);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background-color 0.3s ease;
+    width: 100%;
+    justify-content: center;
+}
+
+.lesson-button:hover:not(:disabled) {
+    background: var(--duo-green-hover);
+}
+
+.lesson-button svg {
+    font-size: 1.2rem;
+}
+
+.lesson-card.locked {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.lesson-card.locked .lesson-button {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.lesson-card.completed .lesson-number {
+    background: var(--duo-blue);
+}
+
+.lesson-card.completed .lesson-button {
+    background: var(--duo-blue);
+}
+
+.lesson-card.completed .lesson-button:hover {
+    background: #1a9fe0;
+}
+
+@keyframes unlock {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.lesson-card:not(.locked) {
+    animation: unlock 0.5s ease forwards;
+} 

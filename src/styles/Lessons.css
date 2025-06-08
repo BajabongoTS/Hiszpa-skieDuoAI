@@ -1,0 +1,67 @@
+.lessons-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.lessons-title {
+    color: var(--text);
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.lessons-progress {
+    background: #e5e5e5;
+    height: 12px;
+    border-radius: 6px;
+    margin: 2rem auto;
+    max-width: 800px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--duo-green) 0%, var(--duo-green-hover) 100%);
+    transition: width 0.5s ease;
+}
+
+.lessons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    padding: 2rem 0;
+}
+
+@media (max-width: 768px) {
+    .lessons-container {
+        margin: 1rem auto;
+    }
+
+    .lessons-title {
+        font-size: 2rem;
+    }
+
+    .lessons-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+}
+
+/* Animation for new lessons unlocking */
+@keyframes progressPulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.progress-bar.updating {
+    animation: progressPulse 0.5s ease;
+} 
