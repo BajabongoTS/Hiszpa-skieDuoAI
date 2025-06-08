@@ -54,6 +54,13 @@ interface IncorrectPairs {
     polish: string;
 }
 
+interface QuestionScore {
+    question: string;
+    points: number;
+    attempts: number;
+    usedDontKnow: boolean;
+}
+
 const lessonsData: Lesson[] = [
     {
         id: 1,
@@ -124,6 +131,7 @@ const Lessons = () => {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const toast = useToast();
     const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
+    const [questionScores, setQuestionScores] = useState<Record<string, QuestionScore>>({});
 
     // Save lessons state to cookies whenever it changes
     useEffect(() => {
@@ -213,163 +221,43 @@ const Lessons = () => {
         setTimerActive(true);
     };
 
-    const handleNextQuestion = () => {
-        if (!currentLesson) return;
-        setShowCorrectAnswer(false);
-        
-        // Reset states for next question
-        setTextInput('');
-        setMatchedPairs({});
-        setSelectedSpanish(null);
-        setTimeLeft(30);
-        setTimerActive(true);
-        setCanExtendTime(true);
-        setIsAnsweredCorrectly(false);
-        
-        const moveToNextQuestion = () => {
-            setCurrentQuestionIndex(prev => prev + 1);
-        };
-
-        const startRepeatMode = () => {
-            setIsInRepeatMode(true);
-            const questionsForRepeat = [...questionsToRepeat];
-            setCurrentLesson(prev => ({
-                ...prev!,
-                questions: questionsForRepeat
-            }));
-            setQuestionsToRepeat([]);
-            setCurrentQuestionIndex(0);
-            toast({
-                title: "Czas na powtórkę!",
-                description: `Masz ${questionsForRepeat.length} pytań do powtórzenia`,
-                status: "info",
-                duration: 3000,
-                isClosable: true
-            });
-        };
-
-        const continueRepeatMode = () => {
-            const questionsForRepeat = [...questionsToRepeat];
-            setCurrentLesson(prev => ({
-                ...prev!,
-                questions: questionsForRepeat
-            }));
-            setQuestionsToRepeat([]);
-            setCurrentQuestionIndex(0);
-            toast({
-                title: "Kolejna runda powtórki",
-                description: `Pozostało ${questionsForRepeat.length} pytań do nauczenia się`,
-                status: "info",
-                duration: 3000,
-                isClosable: true
-            });
-        };
-
-        const finishLesson = () => {
-            const endTime = new Date();
-            const testDuration = testStartTime ? (endTime.getTime() - testStartTime.getTime()) / 1000 : 0;
-            
-            const totalQuestions = currentLesson!.questions.length;
-            const incorrectCount = Object.values(incorrectAttempts).reduce((sum, count) => sum + count, 0);
-            const score = Math.max(0, Math.round((1 - incorrectCount / totalQuestions) * 100));
-            
-            // Update lesson progress and statistics
-            const updatedLessons = lessons.map(lesson =>
-                lesson.id === currentLesson!.id
-                    ? {
-                        ...lesson,
-                        progress: Math.max(lesson.progress || 0, score),
-                        bestScore: Math.max(lesson.bestScore || 0, score),
-                        lastCompleted: new Date()
-                    }
-                    : lesson
-            );
-            
-            setLessons(updatedLessons);
-            
-            // Save lessons progress to cookies
-            const progressData = updatedLessons.map(l => ({
-                id: l.id,
-                progress: l.progress,
-                bestScore: l.bestScore,
-                lastCompleted: l.lastCompleted
-            }));
-            setCookie('lessonsProgress', progressData);
-            
-            // Create and save test result
-            const testResult: TestResult = {
-                lessonId: currentLesson!.id,
-                lessonTitle: currentLesson!.title,
-                score,
-                totalQuestions,
-                correctAnswers: totalQuestions - Object.keys(incorrectAttempts).length,
-                incorrectAttempts,
-                timeSpent: Math.round(testDuration),
-                completedAt: new Date(),
-                incorrectAnswers: Object.entries(incorrectAttempts).map(([question, attempts]) => ({
-                    question,
-                    userAnswer: `Incorrect attempts: ${attempts}`,
-                    correctAnswer: currentLesson!.questions.find(q => q.question === question)?.correctAnswer || ''
-                }))
-            };
-
-            // Save test result to cookies
-            const existingResults = getCookie('testResults') || [];
-            const updatedResults = [testResult, ...existingResults].slice(0, 50); // Keep last 50 results
-            setCookie('testResults', updatedResults);
-            
-            setLastTestResult(testResult);
-            
-            // Update today's activity counter
-            const today = new Date().toDateString();
-            const todayKey = `todayLessons_${today}`;
-            const todayLessons = getCookie(todayKey) || 0;
-            setCookie(todayKey, todayLessons + 1);
-            
-            // Reset all states
-            setCurrentLesson(null);
-            setCurrentQuestionIndex(0);
-            setTestStartTime(null);
-            setIsInRepeatMode(false);
-            setIncorrectAttempts({});
-            setQuestionsToRepeat([]);
-            setShowCorrectAnswer(false);
-            setTextInput('');
-            setMatchedPairs({});
-            setSelectedSpanish(null);
-            setTimeLeft(30);
-            setTimerActive(true);
-            setCanExtendTime(true);
-            
-            onOpen();
-        };
-
-        if (currentQuestionIndex < currentLesson.questions.length - 1) {
-            moveToNextQuestion();
-        } else if (questionsToRepeat.length > 0) {
-            if (!isInRepeatMode) {
-                startRepeatMode();
-            } else {
-                continueRepeatMode();
-            }
+    const calculateQuestionPoints = (question: string, usedDontKnow: boolean, attempts: number): number => {
+        if (!usedDontKnow && attempts === 1) {
+            return 1; // Correct on first try
+        } else if (usedDontKnow && attempts === 1) {
+            return 0.5; // Used "I don't know" on first try
+        } else if (attempts === 2) {
+            return 0.25; // Correct in first repeat
         } else {
-            finishLesson();
+            return 0; // More attempts or repeats
         }
     };
-
-    useEffect(() => {
-        if (currentLesson && currentLesson.questions[currentQuestionIndex]) {
-            setMatchedPairs({});
-            setSelectedSpanish(null);
-            setTimeLeft(30);
-        }
-    }, [currentQuestionIndex, currentLesson]);
 
     const handleDontKnow = () => {
         if (!currentLesson) return;
         const currentQuestion = currentLesson.questions[currentQuestionIndex];
         handleIncorrectAnswer(currentQuestion.question);
-        setQuestionsToRepeat(prev => [...prev, currentQuestion]);
+        
+        // Update question score
+        setQuestionScores(prev => ({
+            ...prev,
+            [currentQuestion.question]: {
+                question: currentQuestion.question,
+                points: calculateQuestionPoints(
+                    currentQuestion.question,
+                    true,
+                    (prev[currentQuestion.question]?.attempts || 0) + 1
+                ),
+                attempts: (prev[currentQuestion.question]?.attempts || 0) + 1,
+                usedDontKnow: true
+            }
+        }));
+
+        if (!isInRepeatMode) {
+            setQuestionsToRepeat(prev => [...prev, currentQuestion]);
+        } else {
+            setQuestionsToRepeat(prev => [...prev, currentQuestion]);
+        }
         setShowCorrectAnswer(true);
         setTimerActive(false);
         toast({
@@ -422,6 +310,20 @@ const Lessons = () => {
             setTimerActive(true);
             return;
         }
+
+        // Update question score for correct answer
+        const currentAttempts = (questionScores[currentQuestion.question]?.attempts || 0) + 1;
+        const usedDontKnow = questionScores[currentQuestion.question]?.usedDontKnow || false;
+        
+        setQuestionScores(prev => ({
+            ...prev,
+            [currentQuestion.question]: {
+                question: currentQuestion.question,
+                points: calculateQuestionPoints(currentQuestion.question, usedDontKnow, currentAttempts),
+                attempts: currentAttempts,
+                usedDontKnow
+            }
+        }));
 
         setIsAnsweredCorrectly(true);
         toast({
@@ -796,6 +698,164 @@ const Lessons = () => {
             </VStack>
         );
     };
+
+    const handleNextQuestion = () => {
+        if (!currentLesson) return;
+        setShowCorrectAnswer(false);
+        
+        // Reset states for next question
+        setTextInput('');
+        setMatchedPairs({});
+        setSelectedSpanish(null);
+        setTimeLeft(30);
+        setTimerActive(true);
+        setCanExtendTime(true);
+        setIsAnsweredCorrectly(false);
+        
+        const moveToNextQuestion = () => {
+            setCurrentQuestionIndex(prev => prev + 1);
+        };
+
+        const startRepeatMode = () => {
+            setIsInRepeatMode(true);
+            const questionsForRepeat = [...questionsToRepeat];
+            setCurrentLesson(prev => ({
+                ...prev!,
+                questions: questionsForRepeat
+            }));
+            setQuestionsToRepeat([]);
+            setCurrentQuestionIndex(0);
+            toast({
+                title: "Czas na powtórkę!",
+                description: `Masz ${questionsForRepeat.length} pytań do powtórzenia`,
+                status: "info",
+                duration: 3000,
+                isClosable: true
+            });
+        };
+
+        const continueRepeatMode = () => {
+            const questionsForRepeat = [...questionsToRepeat];
+            setCurrentLesson(prev => ({
+                ...prev!,
+                questions: questionsForRepeat
+            }));
+            setQuestionsToRepeat([]);
+            setCurrentQuestionIndex(0);
+            toast({
+                title: "Kolejna runda powtórki",
+                description: `Pozostało ${questionsForRepeat.length} pytań do nauczenia się`,
+                status: "info",
+                duration: 3000,
+                isClosable: true
+            });
+        };
+
+        const finishLesson = () => {
+            const endTime = new Date();
+            const testDuration = testStartTime ? (endTime.getTime() - testStartTime.getTime()) / 1000 : 0;
+            
+            const totalQuestions = currentLesson!.questions.length;
+            
+            // Calculate total points based on the new scoring system
+            const totalPoints = Object.values(questionScores).reduce((sum, score) => sum + score.points, 0);
+            const maxPossiblePoints = totalQuestions; // Since each question can get max 1 point
+            const score = Math.round((totalPoints / maxPossiblePoints) * 100);
+            
+            // Update lesson progress and statistics
+            const updatedLessons = lessons.map(lesson =>
+                lesson.id === currentLesson!.id
+                    ? {
+                        ...lesson,
+                        progress: Math.max(lesson.progress || 0, score),
+                        bestScore: Math.max(lesson.bestScore || 0, score),
+                        lastCompleted: new Date()
+                    }
+                    : lesson
+            );
+            
+            setLessons(updatedLessons);
+            
+            // Save lessons progress to cookies
+            const progressData = updatedLessons.map(l => ({
+                id: l.id,
+                progress: l.progress,
+                bestScore: l.bestScore,
+                lastCompleted: l.lastCompleted
+            }));
+            setCookie('lessonsProgress', progressData);
+            
+            // Create detailed test result with new scoring
+            const testResult: TestResult = {
+                lessonId: currentLesson!.id,
+                lessonTitle: currentLesson!.title,
+                score,
+                totalQuestions,
+                correctAnswers: Object.values(questionScores).filter(s => s.points > 0).length,
+                incorrectAttempts,
+                timeSpent: Math.round(testDuration),
+                completedAt: new Date(),
+                incorrectAnswers: Object.entries(questionScores)
+                    .filter(([_, score]) => score.points < 1)
+                    .map(([question, score]) => ({
+                        question,
+                        userAnswer: `Points: ${score.points.toFixed(2)}, Attempts: ${score.attempts}, Used "Don't Know": ${score.usedDontKnow}`,
+                        correctAnswer: currentLesson!.questions.find(q => q.question === question)?.correctAnswer || ''
+                    }))
+            };
+
+            // Save test result to cookies
+            const existingResults = getCookie('testResults') || [];
+            const updatedResults = [testResult, ...existingResults].slice(0, 50);
+            setCookie('testResults', updatedResults);
+            
+            setLastTestResult(testResult);
+            
+            // Update today's activity counter
+            const today = new Date().toDateString();
+            const todayKey = `todayLessons_${today}`;
+            const todayLessons = getCookie(todayKey) || 0;
+            setCookie(todayKey, todayLessons + 1);
+            
+            // Reset all states
+            setCurrentLesson(null);
+            setCurrentQuestionIndex(0);
+            setTestStartTime(null);
+            setIsInRepeatMode(false);
+            setIncorrectAttempts({});
+            setQuestionsToRepeat([]);
+            setShowCorrectAnswer(false);
+            setTextInput('');
+            setMatchedPairs({});
+            setSelectedSpanish(null);
+            setTimeLeft(30);
+            setTimerActive(true);
+            setCanExtendTime(true);
+            setQuestionScores({});
+            
+            onOpen();
+        };
+
+        if (currentQuestionIndex < currentLesson.questions.length - 1) {
+            moveToNextQuestion();
+        } else if (questionsToRepeat.length > 0) {
+            if (!isInRepeatMode) {
+                startRepeatMode();
+            } else {
+                continueRepeatMode();
+            }
+        } else {
+            finishLesson();
+        }
+    };
+
+    useEffect(() => {
+        if (currentLesson && currentLesson.questions[currentQuestionIndex]) {
+            setMatchedPairs({});
+            setSelectedSpanish(null);
+            setTimeLeft(30);
+        }
+    }, [currentQuestionIndex, currentLesson]);
 
     if (currentLesson) {
         const currentQuestion = currentLesson.questions[currentQuestionIndex];
