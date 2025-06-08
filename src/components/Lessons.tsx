@@ -37,17 +37,17 @@ import TestStats from './TestStats';
 const MotionBox = motion(Box);
 
 // Helper function to normalize Spanish text for comparison
-const normalizeSpanishText = (text: string): string => {
-    return text
-        .toLowerCase()
-        // Remove articles
-        .replace(/^(el|la|los|las)\s+/i, '')
-        // Replace diacritical marks
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        // Remove extra whitespace
-        .trim();
-};
+// const normalizeSpanishText = (text: string): string => {
+//     return text
+//         .toLowerCase()
+//         // Remove articles
+//         .replace(/^(el|la|los|las)\s+/i, '')
+//         // Replace diacritical marks
+//         .normalize('NFD')
+//         .replace(/[\u0300-\u036f]/g, '')
+//         // Remove extra whitespace
+//         .trim();
+// };
 
 interface IncorrectPairs {
     spanish: string;
