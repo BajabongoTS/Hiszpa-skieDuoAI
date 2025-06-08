@@ -310,20 +310,17 @@ const Lessons = () => {
             return;
         }
 
-        // Update question score for correct answer
-        const currentAttempts = (questionScores[currentQuestion.question]?.attempts || 0) + 1;
+        // Track points for correct answers with all required properties
+        const currentAttempts = questionScores[currentQuestion.question]?.attempts || 1;
         const usedDontKnow = questionScores[currentQuestion.question]?.usedDontKnow || false;
         
         setQuestionScores(prev => ({
             ...prev,
             [currentQuestion.question]: {
                 question: currentQuestion.question,
-                points: calculateQuestionPoints(
-                    usedDontKnow,
-                    currentAttempts
-                ),
+                points: calculateQuestionPoints(usedDontKnow, currentAttempts),
                 attempts: currentAttempts,
-                usedDontKnow
+                usedDontKnow: usedDontKnow
             }
         }));
 
@@ -759,10 +756,23 @@ const Lessons = () => {
             
             const totalQuestions = currentLesson!.questions.length;
             
-            // Calculate total points based on the new scoring system
-            const totalPoints = Object.values(questionScores).reduce((sum, score) => sum + score.points, 0);
-            const maxPossiblePoints = totalQuestions; // Since each question can get max 1 point
-            const score = Math.round((totalPoints / maxPossiblePoints) * 100);
+            // Calculate total points based on all questions
+            let totalPoints = 0;
+            let correctAnswers = 0;
+            
+            currentLesson!.questions.forEach(question => {
+                const score = questionScores[question.question];
+                if (score) {
+                    totalPoints += score.points;
+                    if (score.points > 0) correctAnswers++;
+                } else {
+                    // If no score recorded, it means the question was answered correctly on first try
+                    totalPoints += 1;
+                    correctAnswers++;
+                }
+            });
+            
+            const score = Math.round((totalPoints / totalQuestions) * 100);
             
             // Update lesson progress and statistics
             const updatedLessons = lessons.map(lesson =>
@@ -793,7 +803,7 @@ const Lessons = () => {
                 lessonTitle: currentLesson!.title,
                 score,
                 totalQuestions,
-                correctAnswers: Object.values(questionScores).filter(s => s.points > 0).length,
+                correctAnswers,
                 incorrectAttempts,
                 timeSpent: Math.round(testDuration),
                 completedAt: new Date(),
