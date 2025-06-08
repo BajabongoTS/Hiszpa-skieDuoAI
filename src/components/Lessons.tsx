@@ -122,6 +122,7 @@ const Lessons = () => {
     const [canExtendTime, setCanExtendTime] = useState(true);
     const [questionsToRepeat, setQuestionsToRepeat] = useState<Question[]>([]);
     const [isInRepeatMode, setIsInRepeatMode] = useState(false);
+    const [timerActive, setTimerActive] = useState(true);
 
     // Save lessons state to cookies whenever it changes
     useEffect(() => {
@@ -158,13 +159,13 @@ const Lessons = () => {
 
     useEffect(() => {
         let timer: ReturnType<typeof setTimeout>;
-        if (timeLeft > 0 && currentLesson && !showExplanation && !isAnsweredCorrectly) {
+        if (timeLeft > 0 && currentLesson && !showExplanation && !isAnsweredCorrectly && timerActive) {
             timer = setInterval(() => {
                 setTimeLeft(prev => prev - 1);
             }, 1000);
         }
         return () => clearInterval(timer);
-    }, [timeLeft, currentLesson, showExplanation, isAnsweredCorrectly]);
+    }, [timeLeft, currentLesson, showExplanation, isAnsweredCorrectly, timerActive]);
 
     useEffect(() => {
         if (timeLeft === 0) {
@@ -214,6 +215,7 @@ const Lessons = () => {
         setIncorrectPairs(null);
         setTimeLeft(30);
         setCanExtendTime(true);
+        setTimerActive(true);
     };
 
     const handleNextQuestion = () => {
@@ -327,37 +329,59 @@ const Lessons = () => {
 
     const handleAnswer = (answer: string) => {
         if (!currentLesson) return;
-
         const currentQuestion = currentLesson.questions[currentQuestionIndex];
-        const normalizedAnswer = normalizeSpanishText(answer);
-        const normalizedCorrect = normalizeSpanishText(currentQuestion.correctAnswer);
+        let isCorrect = false;
 
-        if (normalizedAnswer === normalizedCorrect) {
-            setIsAnsweredCorrectly(true);
-            toast({
-                title: "¡Correcto!",
-                description: "Świetna robota!",
-                status: "success",
-                duration: 2000,
-                isClosable: true
-            });
-            setTimeout(() => {
-                handleNextQuestion();
-            }, 1000);
-        } else {
+        setTimerActive(false);
+
+        switch (currentQuestion.type) {
+            case 'multiple-choice':
+                isCorrect = currentQuestion.correctAnswer === answer;
+                break;
+            case 'text-input':
+                isCorrect = currentQuestion.correctAnswer.toLowerCase() === answer.toLowerCase();
+                break;
+            case 'matching':
+                isCorrect = Object.keys(matchedPairs).length === currentQuestion.matchingPairs!.length &&
+                    currentQuestion.matchingPairs!.every(pair => 
+                        matchedPairs[pair.spanish] === pair.polish
+                    );
+                break;
+        }
+
+        if (!isCorrect) {
             handleIncorrectAnswer(currentQuestion.question);
-            setIncorrectPairs({
-                spanish: answer,
-                polish: currentQuestion.correctAnswer
-            });
             toast({
-                title: "¡Incorrecto!",
+                title: "Niepoprawna odpowiedź",
                 description: "Spróbuj jeszcze raz!",
                 status: "error",
                 duration: 2000,
-                isClosable: true
+                isClosable: true,
             });
+            setTimerActive(true);
+            return;
         }
+
+        setIsAnsweredCorrectly(true);
+        toast({
+            title: "Poprawna odpowiedź!",
+            description: "Świetnie! Tak trzymaj!",
+            status: "success",
+            duration: 2000,
+            isClosable: true,
+        });
+
+        setTimeout(() => {
+            if (currentQuestionIndex < currentLesson.questions.length - 1) {
+                setCurrentQuestionIndex(prev => prev + 1);
+                setIsAnsweredCorrectly(false);
+                setTimeLeft(30);
+                setTimerActive(true);
+                setCanExtendTime(true);
+            } else {
+                finishLesson(currentLesson);
+            }
+        }, 2000);
     };
 
     const handleMatchingClick = (word: string, isSpanish: boolean) => {
@@ -620,16 +644,21 @@ const Lessons = () => {
         const incorrectCount = Object.values(incorrectAttempts).reduce((sum, count) => sum + count, 0);
         const score = Math.max(0, Math.round((1 - incorrectCount / totalQuestions) * 100));
 
-        // Create test result
+        // Create test result with all required properties
         const result: TestResult = {
             lessonId: lesson.id,
             lessonTitle: lesson.title,
+            score,
             totalQuestions,
             correctAnswers: totalQuestions - Object.keys(incorrectAttempts).length,
             incorrectAttempts,
             timeSpent,
             completedAt: new Date(),
-            score
+            incorrectAnswers: Object.entries(incorrectAttempts).map(([question, attempts]) => ({
+                question,
+                userAnswer: `Incorrect attempts: ${attempts}`,
+                correctAnswer: lesson.questions.find(q => q.question === question)?.correctAnswer || ''
+            }))
         };
 
         // Update lesson progress and best score
@@ -673,6 +702,7 @@ const Lessons = () => {
         setIncorrectAttempts({});
         setTimeLeft(30);
         setCanExtendTime(true);
+        setCurrentLesson(null);
     };
 
     if (currentLesson) {
