@@ -610,6 +610,71 @@ const Lessons = () => {
         );
     };
 
+    const finishLesson = (lesson: Lesson) => {
+        if (!testStartTime) return;
+
+        const timeSpent = Math.floor((new Date().getTime() - testStartTime.getTime()) / 1000);
+        
+        // Calculate the score based on incorrect attempts
+        const totalQuestions = lesson.questions.length;
+        const incorrectCount = Object.values(incorrectAttempts).reduce((sum, count) => sum + count, 0);
+        const score = Math.max(0, Math.round((1 - incorrectCount / totalQuestions) * 100));
+
+        // Create test result
+        const result: TestResult = {
+            lessonId: lesson.id,
+            lessonTitle: lesson.title,
+            totalQuestions,
+            correctAnswers: totalQuestions - Object.keys(incorrectAttempts).length,
+            incorrectAttempts,
+            timeSpent,
+            completedAt: new Date(),
+            score
+        };
+
+        // Update lesson progress and best score
+        const updatedLessons = lessons.map(l => 
+            l.id === lesson.id
+                ? {
+                    ...l,
+                    progress: Math.max(l.progress || 0, score),
+                    bestScore: Math.max(l.bestScore || 0, score),
+                    lastCompleted: new Date()
+                }
+                : l
+        );
+        setLessons(updatedLessons);
+
+        // Save lessons progress to cookies
+        const progressData = updatedLessons.map(l => ({
+            id: l.id,
+            progress: l.progress,
+            bestScore: l.bestScore,
+            lastCompleted: l.lastCompleted
+        }));
+        setCookie('lessonsProgress', progressData);
+
+        // Update today's activity counter
+        const today = new Date().toDateString();
+        const todayKey = `todayLessons_${today}`;
+        const todayLessons = (getCookie(todayKey) || 0) + 1;
+        setCookie(todayKey, todayLessons);
+
+        // Save test result
+        const existingResults = getCookie('testResults') || [];
+        const updatedResults = [result, ...existingResults].slice(0, 50); // Keep last 50 results
+        setCookie('testResults', updatedResults);
+
+        setLastTestResult(result);
+        onOpen(); // Show statistics modal
+
+        // Reset state for next lesson
+        setTestStartTime(null);
+        setIncorrectAttempts({});
+        setTimeLeft(30);
+        setCanExtendTime(true);
+    };
+
     if (currentLesson) {
         const currentQuestion = currentLesson.questions[currentQuestionIndex];
         const isLastQuestion = currentQuestionIndex === currentLesson.questions.length - 1;
