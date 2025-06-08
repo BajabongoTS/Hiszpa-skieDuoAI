@@ -26,7 +26,7 @@ import {
     SimpleGrid,
     useColorModeValue
 } from '@chakra-ui/react';
-import { FaArrowLeft, FaClock, FaQuestion } from 'react-icons/fa';
+import { FaArrowLeft, FaClock } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { setCookie, getCookie, removeCookie } from '../utils/cookies';
 import type { Question, Lesson, TestResult } from '../types';
