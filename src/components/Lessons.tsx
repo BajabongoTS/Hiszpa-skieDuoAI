@@ -221,7 +221,7 @@ const Lessons = () => {
         setTimerActive(true);
     };
 
-    const calculateQuestionPoints = (question: string, usedDontKnow: boolean, attempts: number): number => {
+    const calculateQuestionPoints = (usedDontKnow: boolean, attempts: number): number => {
         if (!usedDontKnow && attempts === 1) {
             return 1; // Correct on first try
         } else if (usedDontKnow && attempts === 1) {
@@ -244,7 +244,6 @@ const Lessons = () => {
             [currentQuestion.question]: {
                 question: currentQuestion.question,
                 points: calculateQuestionPoints(
-                    currentQuestion.question,
                     true,
                     (prev[currentQuestion.question]?.attempts || 0) + 1
                 ),
@@ -319,7 +318,10 @@ const Lessons = () => {
             ...prev,
             [currentQuestion.question]: {
                 question: currentQuestion.question,
-                points: calculateQuestionPoints(currentQuestion.question, usedDontKnow, currentAttempts),
+                points: calculateQuestionPoints(
+                    usedDontKnow,
+                    currentAttempts
+                ),
                 attempts: currentAttempts,
                 usedDontKnow
             }
