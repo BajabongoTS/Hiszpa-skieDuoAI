@@ -428,27 +428,7 @@ const Lessons = () => {
 
         return (
             <VStack spacing={6} align="stretch" w="100%" maxW="800px" mx="auto">
-                <Box 
-                    p={6} 
-                    bg={useColorModeValue('white', 'gray.700')} 
-                    borderRadius="lg" 
-                    boxShadow="md"
-                    borderWidth="1px"
-                    borderColor={useColorModeValue('gray.200', 'gray.600')}
-                >
-                    <HStack justify="space-between" mb={4}>
-                        <Text fontSize="2xl" fontWeight="bold" color={accentColor}>{question.question}</Text>
-                        <Button
-                            leftIcon={<FaQuestion />}
-                            onClick={handleDontKnow}
-                            colorScheme={buttonColorScheme}
-                            size="md"
-                            isDisabled={isAnsweredCorrectly || showExplanation}
-                        >
-                            Nie wiem ({questionsToRepeat.length})
-                        </Button>
-                    </HStack>
-                </Box>
+                <Text fontSize="2xl" fontWeight="bold" color={accentColor}>{question.question}</Text>
 
                 {question.type === 'multiple-choice' && question.options && (
                     <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="100%">
